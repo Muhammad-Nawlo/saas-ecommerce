@@ -1,0 +1,13 @@
+---
+description: Folder and namespace structure constraints
+alwaysApply: true
+---
+
+# Folder Structure
+
+- Keep landlord/central concerns under `app/Landlord/*`.
+- Keep shared primitives in `app/Modules/Shared/*`.
+- Place use-case commands in `Application/Commands` and handlers in `Application/Handlers`.
+- Keep framework wiring in `app/Providers`, HTTP endpoints in `routes/*` and controllers.
+- Prefer adding new code in existing context folders over creating ad-hoc top-level directories.
+- Mirror namespace to path exactly (PSR-4).

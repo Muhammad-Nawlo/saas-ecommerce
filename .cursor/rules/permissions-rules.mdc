@@ -1,0 +1,13 @@
+---
+description: Authorization and permission enforcement expectations
+alwaysApply: true
+---
+
+# Permissions Rules
+
+- Deny by default; require explicit authentication/authorization.
+- Protect mutating operations with policies/permissions checks.
+- Enforce least privilege for admin actions.
+- Do not expose tenant-sensitive fields in unauthorized responses.
+- Prefer centralized policy checks over duplicated inline role checks.
+- Ensure permission changes are logged with actor + target context.

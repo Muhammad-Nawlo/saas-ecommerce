@@ -1,0 +1,13 @@
+---
+description: Hard rules for tenancy isolation and context correctness
+alwaysApply: true
+---
+
+# Tenancy Rules
+
+- Determine context first: **landlord (central)** vs **tenant**.
+- Never perform cross-tenant reads/writes unless explicitly central and audited.
+- Do not access tenant data before tenancy initialization middleware is active.
+- In central flows, avoid tenant-scoped model resolution unless intentionally switching context.
+- Tenant lifecycle operations (create/suspend/delete) must be idempotent and safe on retries.
+- Any tenant provisioning/deprovisioning must emit auditable events.

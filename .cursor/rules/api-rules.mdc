@@ -1,0 +1,13 @@
+---
+description: API design and compatibility rules
+alwaysApply: true
+---
+
+# API Rules
+
+- Keep response shapes consistent and explicit.
+- Validate all request input; return clear structured validation errors.
+- Do not introduce breaking response or route contract changes without explicit approval.
+- Use pagination/filtering/sorting standards consistently.
+- Ensure tenant isolation in every query path.
+- Prefer Resources/DTOs for public API output.
