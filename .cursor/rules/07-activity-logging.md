@@ -1,5 +1,8 @@
 # ACTIVITY LOGGING RULES
 
+Canonical source for activity logging constraints.
+`17-activity-log-discipline.md` is a condensed companion and must not conflict.
+
 Using:
 - spatie/laravel-activitylog
 
