@@ -1,0 +1,12 @@
+---
+description: Promotion and discount execution rules
+alwaysApply: true
+---
+
+# Promotion Engine Rules
+
+- Promotions must be deterministic and idempotent.
+- Validate eligibility (tenant, channel, customer, time window, usage limits) before application.
+- Prevent stacking conflicts through explicit priority and exclusivity rules.
+- Keep redemption counters concurrency-safe.
+- Always store the exact applied promotion snapshot with order/cart context.

@@ -1,0 +1,13 @@
+---
+description: Filament-specific implementation rules
+alwaysApply: true
+---
+
+# Filament Rules
+
+- Keep Filament Resources focused on UI/state orchestration only.
+- Delegate domain actions to application services/handlers.
+- Add authorization gates/policies for pages, resources, actions, and bulk actions.
+- Scope queries to current tenant context by default.
+- Prefer reusable form/table components and avoid duplicated schemas.
+- Validate server-side even when Filament client-side validation exists.

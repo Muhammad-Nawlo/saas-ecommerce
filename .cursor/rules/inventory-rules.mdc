@@ -1,0 +1,12 @@
+---
+description: Inventory reservation and stock integrity rules
+alwaysApply: true
+---
+
+# Inventory Rules
+
+- Never allow stock to go negative unless product policy explicitly permits backorders.
+- Use reservation-first flow for checkout; commit deduction only on final confirmation.
+- Treat inventory updates as concurrency-sensitive (locking/atomic updates/version checks).
+- Keep warehouse/location-aware inventory logic explicit.
+- Inventory adjustments must include reason codes and actor metadata.

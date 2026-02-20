@@ -1,0 +1,12 @@
+---
+description: Test expectations for behavior and regressions
+alwaysApply: true
+---
+
+# Testing Rules
+
+- Every behavior change requires automated tests (Pest preferred).
+- Cover success path + authorization + validation + tenancy isolation.
+- Add regression tests for bugs before fixing where feasible.
+- Prefer focused tests near modified domain plus broader smoke checks.
+- Keep tests deterministic and independent.

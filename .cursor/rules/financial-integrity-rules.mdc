@@ -1,0 +1,12 @@
+---
+description: Financial data and transaction integrity rules
+alwaysApply: true
+---
+
+# Financial Integrity Rules
+
+- Financial writes must be atomic and traceable.
+- Never mutate historical monetary records in-place; use adjustments/reversals.
+- Maintain balance invariants across captures, refunds, credits, and settlements.
+- Use immutable transaction references and idempotency protections for payment webhooks.
+- Reconciliation fields must be stored to support downstream accounting.

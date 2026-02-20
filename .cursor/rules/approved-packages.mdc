@@ -1,0 +1,20 @@
+---
+description: Approved package and dependency constraints
+alwaysApply: true
+---
+
+# Approved Packages
+
+- Prefer existing stack first:
+  - Laravel core packages
+  - Filament
+  - Stancl Tenancy
+  - Spatie packages already present in `composer.json`
+  - Pest testing ecosystem
+- Do not add new runtime dependencies unless required by explicit request and justification.
+- For new dependencies, require:
+  - active maintenance
+  - permissive license compatibility
+  - security posture review
+  - clear removal/migration path
+- Avoid overlapping libraries that duplicate existing capabilities.
