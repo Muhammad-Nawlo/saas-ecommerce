@@ -18,15 +18,19 @@ Tenant DB must NOT contain:
 
 ## Rule T-2 — Membership Is Required For Tenant Access
 
-Access order:
+Access order (must match AUTH-1 in `12-authorization-pipeline.md`):
 
 1. User authenticated
 2. Tenant resolved
-3. Membership exists
-4. Membership status = active
-5. Permission check
+3. Tenant active
+4. Subscription active
+5. Feature allowed by plan
+6. Membership exists
+7. Membership status = active
+8. Permission check
 
-Controllers must NEVER check permission before membership validation.
+Controllers must NEVER check permission before membership validation,
+and must NEVER bypass tenant/subscription/plan checks.
 
 ---
 
@@ -40,6 +44,10 @@ Unique index required:
 (name, tenant_id)
 
 Global roles shared across tenants are forbidden.
+
+Note:
+When using separate tenant databases, `tenant_id` may still be required
+for package compatibility and explicit uniqueness guarantees.
 
 ---
 

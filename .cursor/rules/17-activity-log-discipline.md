@@ -1,5 +1,8 @@
 # ACTIVITY LOG DISCIPLINE RULES
 
+Companion summary of `07-activity-logging.md`.
+If guidance differs, `07-activity-logging.md` is authoritative.
+
 Using: spatie/laravel-activitylog
 
 ---
