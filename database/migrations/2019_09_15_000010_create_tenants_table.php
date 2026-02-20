@@ -16,10 +16,17 @@ class CreateTenantsTable extends Migration
     public function up(): void
     {
         Schema::create('tenants', function (Blueprint $table) {
-            $table->string('id')->primary();
+            $table->uuid('id')->primary();
+            $table->string('name');
+            $table->string('slug')->unique();
 
-            // your custom columns may go here
+            $table->string('status')->default('active'); // active | suspended | canceled
 
+            $table->foreignId('plan_id')->nullable()->constrained('plans');
+
+
+            $table->timestamp('trial_ends_at')->nullable();
+            $table->timestamp('suspended_at')->nullable();
             $table->timestamps();
             $table->json('data')->nullable();
         });
