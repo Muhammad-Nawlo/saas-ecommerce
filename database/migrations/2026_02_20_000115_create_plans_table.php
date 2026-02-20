@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('code')->unique();
 
-            $table->integer('price'); // in cents
+            $table->integer('price');
             $table->string('currency', 3);
 
             $table->integer('product_limit')->nullable();
