@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
             $table->uuid('tenant_id');
+            $table->foreignId('plan_id')->nullable()->constrained('plans')->nullOnDelete();
 
             $table->string('provider'); // stripe, paddle
             $table->string('provider_id')->nullable();
