@@ -1,22 +1,21 @@
 <?php
 
-namespace App\Models;
+namespace App\Landlord\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class CentralUser extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use Notifiable;
+
+    protected $table = 'central_users';
 
     protected $fillable = [
         'name',
         'email',
         'password',
+        'is_super_admin',
     ];
 
     protected $hidden = [
@@ -28,6 +27,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_super_admin' => 'boolean',
             'password' => 'hashed',
         ];
     }
