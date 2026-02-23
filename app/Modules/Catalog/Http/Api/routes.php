@@ -1,6 +1,23 @@
 <?php
 
-use App\Modules\Catalog\Http\Api\Controllers\ProductController;
+declare(strict_types=1);
 
-Route::get('products', [ProductController::class, 'index']);
-Route::post('products', [ProductController::class, 'store']);
+use App\Modules\Catalog\Http\Api\Controllers\ProductController;
+use Illuminate\Support\Facades\Route;
+use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
+use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
+
+Route::middleware([
+    'api',
+    InitializeTenancyBySubdomain::class,
+    PreventAccessFromCentralDomains::class,
+])
+    ->prefix('catalog')
+    ->group(function (): void {
+        Route::get('products', [ProductController::class, 'index']);
+        Route::get('products/{id}', [ProductController::class, 'show']);
+        Route::post('products', [ProductController::class, 'store']);
+        Route::patch('products/{id}/price', [ProductController::class, 'updatePrice']);
+        Route::post('products/{id}/activate', [ProductController::class, 'activate']);
+        Route::post('products/{id}/deactivate', [ProductController::class, 'deactivate']);
+    });

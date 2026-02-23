@@ -1,0 +1,50 @@
+app/Modules/Catalog/
+├── Application/
+│   ├── Commands/
+│   │   ├── ActivateProductCommand.php
+│   │   ├── CreateProductCommand.php
+│   │   ├── DeactivateProductCommand.php
+│   │   └── UpdateProductPriceCommand.php
+│   ├── DTOs/
+│   │   └── ProductDTO.php
+│   └── Handlers/
+│       ├── ActivateProductHandler.php
+│       ├── CreateProductHandler.php
+│       ├── DeactivateProductHandler.php
+│       └── UpdateProductPriceHandler.php
+├── Domain/
+│   ├── Entities/
+│   │   └── Product.php
+│   ├── Events/
+│   │   ├── ProductActivated.php
+│   │   ├── ProductCreated.php
+│   │   ├── ProductDeactivated.php
+│   │   └── ProductPriceChanged.php
+│   ├── Exceptions/
+│   │   └── InvalidProductName.php
+│   ├── Repositories/
+│   │   └── ProductRepository.php
+│   └── ValueObjects/
+│       ├── ProductDescription.php
+│       ├── ProductId.php
+│       ├── ProductName.php
+│       └── (uses Shared: Money, Slug, TenantId)
+├── Infrastructure/
+│   ├── Http/
+│   │   └── Api/
+│   │       ├── Controllers/
+│   │       │   └── ProductController.php
+│   │       ├── Requests/
+│   │       │   ├── StoreProductRequest.php
+│   │       │   └── UpdateProductPriceRequest.php
+│   │       ├── Resources/
+│   │       │   └── ProductResource.php
+│   │       └── routes.php
+│   └── Persistence/
+│       ├── EloquentProductRepository.php
+│       └── ProductModel.php
+└── Providers/
+    └── CatalogServiceProvider.php
+
+Routes (main app): routes/api/v1/catalog.php
+Tenant migration: database/migrations/tenant/2026_02_20_105239_create_products_table.php
