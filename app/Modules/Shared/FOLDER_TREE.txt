@@ -1,0 +1,30 @@
+app/Modules/Shared/
+├── Domain/
+│   ├── Contracts/
+│   │   ├── AggregateRoot.php
+│   │   ├── Command.php
+│   │   ├── DomainEvent.php
+│   │   ├── Query.php
+│   │   └── Repository.php
+│   ├── Exceptions/
+│   │   ├── BusinessRuleViolation.php
+│   │   ├── DomainException.php
+│   │   └── InvalidValueObject.php
+│   └── ValueObjects/
+│       ├── Email.php
+│       ├── Money.php
+│       ├── Slug.php
+│       ├── TenantId.php
+│       └── Uuid.php
+└── Infrastructure/
+    ├── Messaging/
+    │   ├── CommandBus.php
+    │   ├── EventBus.php
+    │   ├── LaravelCommandBus.php
+    │   ├── LaravelEventBus.php
+    │   ├── LaravelQueryBus.php
+    │   └── QueryBus.php
+    └── Persistence/
+        ├── BaseEloquentRepository.php
+        ├── LaravelTransactionManager.php
+        └── TransactionManager.php
