@@ -21,6 +21,9 @@ class EventServiceProvider extends BaseEventServiceProvider
 
     public function boot(): void
     {
+        Event::subscribe(\App\Listeners\Financial\CreateFinancialTransactionListener::class);
+        Event::subscribe(\App\Listeners\Financial\AuditLogOrderStatusListener::class);
+
         Event::listen(
             \App\Modules\Payments\Domain\Events\PaymentSucceeded::class,
             OrderPaidListener::class

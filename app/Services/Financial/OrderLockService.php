@@ -1,0 +1,127 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Financial;
+
+use App\Events\Financial\OrderLocked;
+use App\Models\Financial\FinancialOrder;
+use App\Models\Financial\FinancialOrderItem;
+use App\Models\Financial\FinancialOrderTaxLine;
+use App\Models\Financial\TaxRate;
+use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
+
+/**
+ * Locks an order: computes totals, snapshots items and tax, sets locked_at.
+ * After lock the order is immutable. Call when transitioning draft → pending.
+ */
+final class OrderLockService
+{
+    public function __construct(
+        private TaxCalculator $taxCalculator,
+    ) {}
+
+    public function lock(FinancialOrder $order, ?string $countryCode = null, ?string $regionCode = null): void
+    {
+        if ($order->isLocked()) {
+            throw new InvalidArgumentException('Order is already locked.');
+        }
+        if ($order->status !== FinancialOrder::STATUS_DRAFT) {
+            throw new InvalidArgumentException('Only draft orders can be locked.');
+        }
+
+        $order->load('items');
+        if ($order->items->isEmpty()) {
+            throw new InvalidArgumentException('Order must have at least one item to lock.');
+        }
+
+        $applicableRates = $this->getApplicableRates($order, $countryCode, $regionCode);
+        $result = $this->taxCalculator->calculate($order, $applicableRates);
+
+        DB::transaction(function () use ($order, $result, $applicableRates): void {
+            $order->subtotal_cents = $result->subtotal_cents;
+            $order->tax_total_cents = $result->tax_total_cents;
+            $order->total_cents = $result->total_cents;
+            $order->locked_at = now();
+            $order->status = FinancialOrder::STATUS_PENDING;
+                foreach ($order->items as $item) {
+                $item->subtotal_cents = $item->quantity * $item->unit_price_cents;
+                $item->tax_cents = $this->itemTaxCents($item->subtotal_cents, $applicableRates);
+                $item->total_cents = $item->subtotal_cents + $item->tax_cents;
+                $item->save();
+            }
+
+            FinancialOrderTaxLine::where('order_id', $order->id)->delete();
+            foreach ($result->taxLines as $line) {
+                FinancialOrderTaxLine::create([
+                    'order_id' => $order->id,
+                    'tax_rate_name' => $line['name'],
+                    'tax_percentage' => $line['percentage'],
+                    'taxable_amount_cents' => $line['taxable_amount_cents'],
+                    'tax_amount_cents' => $line['tax_amount_cents'],
+                ]);
+            }
+
+            $order->snapshot = $this->buildSnapshot($order, $result);
+            $order->save();
+        });
+
+        event(new OrderLocked($order));
+    }
+
+    private function getApplicableRates(FinancialOrder $order, ?string $countryCode, ?string $regionCode): array
+    {
+        $query = TaxRate::where('is_active', true);
+        if ($order->tenant_id !== null) {
+            $query->where(function ($q) use ($order): void {
+                $q->where('tenant_id', $order->tenant_id)->orWhereNull('tenant_id');
+            });
+        }
+        if ($countryCode !== null) {
+            $query->where('country_code', $countryCode);
+        }
+        if ($regionCode !== null) {
+            $query->where(function ($q) use ($regionCode): void {
+                $q->where('region_code', $regionCode)->orWhereNull('region_code');
+            });
+        }
+        return $query->get()->all();
+    }
+
+    /** @param array<TaxRate> $rates */
+    private function itemTaxCents(int $itemSubtotalCents, array $rates): int
+    {
+        $tax = 0;
+        foreach ($rates as $r) {
+            $tax += (int) round($itemSubtotalCents * (float) $r->percentage / 100);
+        }
+        return $tax;
+    }
+
+    private function buildSnapshot(FinancialOrder $order, TaxResult $result): array
+    {
+        $items = [];
+        foreach ($order->items as $item) {
+            $items[] = [
+                'id' => $item->id,
+                'description' => $item->description,
+                'quantity' => $item->quantity,
+                'unit_price_cents' => $item->unit_price_cents,
+                'subtotal_cents' => $item->quantity * $item->unit_price_cents,
+                'tax_cents' => $item->tax_cents ?? 0,
+                'total_cents' => ($item->quantity * $item->unit_price_cents) + ($item->tax_cents ?? 0),
+                'metadata' => $item->metadata,
+            ];
+        }
+        return [
+            'locked_at' => $order->locked_at?->toIso8601String(),
+            'currency' => $order->currency,
+            'subtotal_cents' => $result->subtotal_cents,
+            'tax_total_cents' => $result->tax_total_cents,
+            'total_cents' => $result->total_cents,
+            'tax_lines' => $result->taxLines,
+            'items' => $items,
+        ];
+    }
+}
