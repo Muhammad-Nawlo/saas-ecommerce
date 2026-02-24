@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Suspend tenants past 7-day payment grace period (run daily).
 Schedule::command('billing:suspend-past-grace-period')->daily();
+
+// Prune old audit logs (tenant 180 days, landlord 365 days).
+Schedule::command('audit:prune')->daily();
