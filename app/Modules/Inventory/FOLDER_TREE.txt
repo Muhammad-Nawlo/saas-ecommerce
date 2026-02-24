@@ -1,0 +1,60 @@
+app/Modules/Inventory/
+├── Application/
+│   ├── Commands/
+│   │   ├── CreateStockCommand.php
+│   │   ├── DecreaseStockCommand.php
+│   │   ├── IncreaseStockCommand.php
+│   │   ├── ReleaseStockCommand.php
+│   │   ├── ReserveStockCommand.php
+│   │   └── SetLowStockThresholdCommand.php
+│   ├── DTOs/
+│   │   └── StockItemDTO.php
+│   └── Handlers/
+│       ├── CreateStockHandler.php
+│       ├── DecreaseStockHandler.php
+│       ├── IncreaseStockHandler.php
+│       ├── ReleaseStockHandler.php
+│       ├── ReserveStockHandler.php
+│       └── SetLowStockThresholdHandler.php
+├── Domain/
+│   ├── Entities/
+│   │   └── StockItem.php
+│   ├── Events/
+│   │   ├── LowStockReached.php
+│   │   ├── StockCreated.php
+│   │   ├── StockDecreased.php
+│   │   ├── StockIncreased.php
+│   │   ├── StockReleased.php
+│   │   └── StockReserved.php
+│   ├── Exceptions/
+│   │   ├── InsufficientStockException.php
+│   │   └── StockAlreadyExistsException.php
+│   ├── Repositories/
+│   │   └── StockItemRepository.php
+│   └── ValueObjects/
+│       ├── ProductId.php
+│       ├── Quantity.php
+│       ├── StockItemId.php
+│       └── Threshold.php
+├── Infrastructure/
+│   ├── Http/
+│   │   └── Api/
+│   │       ├── Controllers/
+│   │       │   └── StockController.php
+│   │       ├── Requests/
+│   │       │   ├── CreateStockRequest.php
+│   │       │   ├── DecreaseStockRequest.php
+│   │       │   ├── IncreaseStockRequest.php
+│   │       │   ├── ReleaseStockRequest.php
+│   │       │   ├── ReserveStockRequest.php
+│   │       │   └── SetLowStockThresholdRequest.php
+│   │       └── Resources/
+│   │           └── StockItemResource.php
+│   └── Persistence/
+│       ├── EloquentStockItemRepository.php
+│       └── StockItemModel.php
+└── Providers/
+    └── InventoryServiceProvider.php
+
+Routes: routes/api/v1/inventory.php
+Tenant migration: database/migrations/tenant/2026_02_24_000001_create_stock_items_table.php

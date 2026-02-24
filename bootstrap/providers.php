@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
+use App\Modules\Inventory\Providers\InventoryServiceProvider;
 
 return [
     App\Providers\AppServiceProvider::class,
@@ -10,5 +11,6 @@ return [
 
 
     //SAAS Providers
-    CatalogServiceProvider::class
+    CatalogServiceProvider::class,
+    InventoryServiceProvider::class,
 ];

@@ -9,4 +9,5 @@ Route::get('/user', function (Request $request) {
 
 Route::prefix('v1')->group(function (): void {
     require __DIR__ . '/v1/catalog.php';
+    require __DIR__ . '/v1/inventory.php';
 });
