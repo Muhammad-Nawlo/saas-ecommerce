@@ -10,5 +10,7 @@ class Tenant extends BaseTenant
         'id',
         'name',
         'plan_id',
+        'stripe_customer_id',
+        'status',
     ];
 }

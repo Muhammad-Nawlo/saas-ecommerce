@@ -36,12 +36,14 @@ class SubscriptionModel extends Model
         'current_period_start',
         'current_period_end',
         'cancel_at_period_end',
+        'past_due_at',
     ];
 
     protected $casts = [
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
         'cancel_at_period_end' => 'boolean',
+        'past_due_at' => 'datetime',
     ];
 
     public function __construct(array $attributes = [])

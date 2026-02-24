@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use App\Landlord\Billing\Infrastructure\Http\Controllers\BillingWebhookController;
 use App\Landlord\Billing\Infrastructure\Http\Controllers\PlanController;
 use App\Landlord\Billing\Infrastructure\Http\Controllers\SubscriptionController;
+use App\Landlord\Http\Controllers\BillingCheckoutController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('plans')->group(function (): void {
@@ -19,5 +19,9 @@ Route::prefix('subscriptions')->group(function (): void {
     Route::get('{tenantId}', [SubscriptionController::class, 'show']);
 });
 Route::prefix('billing')->group(function (): void {
-    Route::post('webhook', BillingWebhookController::class)->name('landlord.billing.webhook');
+    Route::post('checkout/{plan}', BillingCheckoutController::class)->name('landlord.billing.checkout');
+    Route::post('webhook', \App\Landlord\Http\Controllers\StripeWebhookController::class)->name('landlord.billing.webhook');
+    Route::get('success', fn () => response()->json(['message' => 'Checkout successful']))->name('landlord.billing.success');
+    Route::get('cancel', fn () => response()->json(['message' => 'Checkout cancelled']))->name('landlord.billing.cancel');
+    Route::get('portal/return', fn () => response()->json(['message' => 'Returned from billing portal']))->name('landlord.billing.portal.return');
 });

@@ -135,6 +135,13 @@ final class Subscription
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    /** Sync plan when Stripe subscription item price changes (upgrade/downgrade). */
+    public function syncPlanFromStripe(PlanId $planId): void
+    {
+        $this->planId = $planId;
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
     /**
      * @param list<string> $allowedFrom
      * @param class-string $eventClass

@@ -19,7 +19,7 @@ interface StripeBillingGateway
     public function cancelSubscription(string $stripeSubscriptionId): void;
 
     /**
-     * @return array{id: string, status: string, current_period_start: int, current_period_end: int, cancel_at_period_end: bool}
+     * @return array{id: string, status: string, current_period_start: int, current_period_end: int, cancel_at_period_end: bool, price_id: string|null}
      */
     public function retrieveSubscription(string $stripeSubscriptionId): array;
 }

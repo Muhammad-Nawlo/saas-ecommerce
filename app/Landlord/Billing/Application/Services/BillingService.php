@@ -109,11 +109,96 @@ final readonly class BillingService
             $stripeData['current_period_end'],
             $stripeData['cancel_at_period_end']
         );
+        // Sync plan when Stripe subscription price changed (upgrade/downgrade).
+        $priceId = $stripeData['price_id'] ?? null;
+        if ($priceId !== null && $priceId !== '') {
+            $plan = $this->planRepository->findByStripePriceId($priceId);
+            if ($plan !== null && $subscription->planId()->value() !== $plan->id()->value()) {
+                $subscription->syncPlanFromStripe($plan->id());
+            }
+        }
         $this->subscriptionRepository->save($subscription);
         foreach ($subscription->pullDomainEvents() as $event) {
             $this->events->dispatch($event);
         }
         $this->featureResolver->invalidateCacheForTenant($subscription->tenantId()->value());
         return $subscription;
+    }
+
+    /**
+     * Create or sync local subscription after Stripe Checkout session completed.
+     * Updates tenant plan_id and stripe_customer_id.
+     */
+    public function createSubscriptionFromStripeCheckout(
+        string $stripeSubscriptionId,
+        string $tenantId,
+        string $stripeCustomerId
+    ): Subscription {
+        $existing = $this->subscriptionRepository->findByStripeSubscriptionId($stripeSubscriptionId);
+        if ($existing !== null) {
+            $this->syncSubscriptionFromStripe(new SyncStripeSubscriptionCommand($stripeSubscriptionId));
+            $this->updateTenantStripeAndPlan($tenantId, $existing->planId()->value(), $stripeCustomerId);
+            return $existing;
+        }
+
+        $stripeData = $this->stripeGateway->retrieveSubscription($stripeSubscriptionId);
+        $priceId = $stripeData['price_id'] ?? null;
+        if ($priceId === null || $priceId === '') {
+            throw new DomainException('Stripe subscription has no price');
+        }
+        $plan = $this->planRepository->findByStripePriceId($priceId);
+        if ($plan === null) {
+            throw new DomainException('Plan not found for Stripe price: ' . $priceId);
+        }
+        if (!$plan->isActive()) {
+            throw new DomainException('Plan is not active');
+        }
+
+        $subscriptionId = SubscriptionId::generate();
+        $stripeSubId = StripeSubscriptionId::fromString($stripeData['id']);
+        $periodStart = (new \DateTimeImmutable())->setTimestamp($stripeData['current_period_start']);
+        $periodEnd = (new \DateTimeImmutable())->setTimestamp($stripeData['current_period_end']);
+        $subscription = Subscription::create(
+            $subscriptionId,
+            $tenantId,
+            $plan->id(),
+            $stripeSubId,
+            $periodStart,
+            $periodEnd,
+            $stripeData['cancel_at_period_end']
+        );
+        $status = SubscriptionStatus::fromString($this->normalizeStripeStatus($stripeData['status']));
+        if ($status->isActive()) {
+            $subscription->markActive();
+        } elseif ($status->isTrialing()) {
+            $subscription->markTrialing();
+        } elseif ($status->isPastDue()) {
+            $subscription->markPastDue();
+        }
+
+        $this->subscriptionRepository->save($subscription);
+        foreach ($subscription->pullDomainEvents() as $event) {
+            $this->events->dispatch($event);
+        }
+        $this->updateTenantStripeAndPlan($tenantId, $plan->id()->value(), $stripeCustomerId);
+        $this->featureResolver->invalidateCacheForTenant($tenantId);
+        return $subscription;
+    }
+
+    private function updateTenantStripeAndPlan(string $tenantId, string $planId, string $stripeCustomerId): void
+    {
+        $tenant = \App\Landlord\Models\Tenant::find($tenantId);
+        if ($tenant === null) {
+            return;
+        }
+        $tenant->plan_id = $planId;
+        $tenant->stripe_customer_id = $stripeCustomerId;
+        $tenant->status = 'active';
+        $tenant->save();
+    }
+
+    private function normalizeStripeStatus(string $status): string
+    {
+        return $status === 'canceled' ? 'cancelled' : $status;
     }
 }

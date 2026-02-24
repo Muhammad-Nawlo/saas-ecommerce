@@ -12,6 +12,7 @@ use App\Landlord\Billing\Infrastructure\Persistence\EloquentPlanRepository;
 use App\Landlord\Billing\Infrastructure\Persistence\EloquentSubscriptionRepository;
 use App\Landlord\Billing\Infrastructure\Persistence\PlanModel;
 use App\Landlord\Billing\Infrastructure\Persistence\SubscriptionModel;
+use App\Landlord\Services\StripeService;
 use App\Modules\Shared\Infrastructure\Persistence\LaravelTransactionManager;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
 use Illuminate\Support\ServiceProvider;
@@ -29,6 +30,9 @@ final class BillingServiceProvider extends ServiceProvider
         });
         $this->app->singleton(StripeBillingGateway::class, function (): StripeBillingGateway {
             return StripeBillingGatewayImplementation::fromConfig();
+        });
+        $this->app->singleton(StripeService::class, function (): StripeService {
+            return StripeService::fromConfig();
         });
     }
 

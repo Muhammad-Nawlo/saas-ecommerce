@@ -39,6 +39,14 @@ final readonly class EloquentPlanRepository implements PlanRepository
         return $model === null ? null : $this->toDomain($model);
     }
 
+    public function findByStripePriceId(string $stripePriceId): ?Plan
+    {
+        $model = PlanModel::on($this->model->getConnectionName())
+            ->where('stripe_price_id', $stripePriceId)
+            ->first();
+        return $model === null ? null : $this->toDomain($model);
+    }
+
     /**
      * @return list<Plan>
      */

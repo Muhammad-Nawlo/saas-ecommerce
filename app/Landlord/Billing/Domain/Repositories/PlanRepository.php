@@ -13,6 +13,8 @@ interface PlanRepository
 
     public function findById(PlanId $id): ?Plan;
 
+    public function findByStripePriceId(string $stripePriceId): ?Plan;
+
     /**
      * @return list<Plan>
      */

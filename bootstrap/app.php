@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckTenantFeature;
+use App\Http\Middleware\EnsureTenantNotSuspended;
 use App\Http\Middleware\EnsureTenantSubscriptionIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'feature' => CheckTenantFeature::class,
             'subscription.active' => EnsureTenantSubscriptionIsActive::class,
+            'tenant.not_suspended' => EnsureTenantNotSuspended::class,
             'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
         ]);
     })

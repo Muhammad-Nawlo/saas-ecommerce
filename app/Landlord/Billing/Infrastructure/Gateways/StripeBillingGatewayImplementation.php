@@ -54,21 +54,29 @@ final readonly class StripeBillingGatewayImplementation implements StripeBilling
 
     public function retrieveSubscription(string $stripeSubscriptionId): array
     {
-        $subscription = $this->stripe->subscriptions->retrieve($stripeSubscriptionId);
+        $subscription = $this->stripe->subscriptions->retrieve($stripeSubscriptionId, [
+            'expand' => ['items.data.price'],
+        ]);
         return $this->subscriptionToArray($subscription);
     }
 
     /**
-     * @return array{id: string, status: string, current_period_start: int, current_period_end: int, cancel_at_period_end: bool}
+     * @return array{id: string, status: string, current_period_start: int, current_period_end: int, cancel_at_period_end: bool, price_id: string|null}
      */
     private function subscriptionToArray(Subscription $subscription): array
     {
+        $priceId = null;
+        if (isset($subscription->items->data[0]->price->id)) {
+            $priceId = (string) $subscription->items->data[0]->price->id;
+        }
+
         return [
             'id' => (string) $subscription->id,
             'status' => (string) $subscription->status,
             'current_period_start' => (int) $subscription->current_period_start,
             'current_period_end' => (int) $subscription->current_period_end,
             'cancel_at_period_end' => (bool) $subscription->cancel_at_period_end,
+            'price_id' => $priceId,
         ];
     }
 }

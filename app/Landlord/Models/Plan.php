@@ -31,6 +31,7 @@ class Plan extends Model
         'code',
         'price',
         'billing_interval',
+        'stripe_price_id',
     ];
 
     protected $casts = [
