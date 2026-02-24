@@ -1,0 +1,42 @@
+app/Modules/Checkout/
+├── Application/
+│   ├── Commands/
+│   │   ├── CheckoutCartCommand.php
+│   │   └── ConfirmCheckoutPaymentCommand.php
+│   ├── Contracts/
+│   │   ├── CartService.php
+│   │   ├── InventoryService.php
+│   │   ├── OrderService.php
+│   │   └── PaymentService.php
+│   ├── DTOs/
+│   │   ├── CartSnapshotDTO.php
+│   │   ├── CartSnapshotItemDTO.php
+│   │   └── CheckoutResponseDTO.php
+│   ├── Exceptions/
+│   │   ├── CheckoutFailedException.php
+│   │   ├── EmptyCartException.php
+│   │   ├── PaymentInitializationException.php
+│   │   └── StockValidationException.php
+│   ├── Handlers/
+│   │   ├── CheckoutCartHandler.php
+│   │   └── ConfirmCheckoutPaymentHandler.php
+│   └── Services/
+│       └── CheckoutOrchestrator.php
+├── Infrastructure/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   └── CheckoutController.php
+│   │   ├── Requests/
+│   │   │   ├── CheckoutRequest.php
+│   │   │   └── ConfirmCheckoutPaymentRequest.php
+│   │   └── Resources/
+│   │       └── CheckoutResponseResource.php
+│   └── Services/
+│       ├── CheckoutCartService.php
+│       ├── CheckoutInventoryService.php
+│       ├── CheckoutOrderService.php
+│       └── CheckoutPaymentService.php
+└── Providers/
+    └── CheckoutServiceProvider.php
+
+Routes: routes/api/v1/checkout.php
