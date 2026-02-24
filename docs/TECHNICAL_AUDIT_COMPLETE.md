@@ -1,361 +1,472 @@
 # Complete Technical Audit — Multi-Tenant SaaS E-Commerce Platform
 
-**Audit date:** 2026-02-24 (updated)  
-**Scope:** Full codebase analysis — no code changes.  
-**Assumption:** Project will handle significant GMV; assessment is CTO-grade for production and funding readiness.
+**Audit date:** 2026-02-24 (full system audit)  
+**Scope:** Entire codebase — structured system audit. No code changes.  
+**Assumption:** Project targets serious SaaS scale and significant GMV.
 
 ---
 
-## 1. Executive Summary
+## SECTION 1 — HIGH LEVEL SYSTEM MAP
 
-The platform is a **Laravel 11 modular monolith** with **database-per-tenant** (Stancl Tenancy), Filament 3 for Landlord and Tenant panels, and a clear split between ecommerce modules (Catalog, Cart, Checkout, Orders, Payments, Inventory) and financial/operational features (Financial Orders, Tax, Invoicing, Multi-Location Inventory, Multi-Currency). **Critical finding:** There are **two disconnected order systems** — the API checkout flow creates and pays **orders** (OrderModel / `orders` table), while Invoicing, Tax, and Financial Order Lock/Pay operate on **financial_orders** (FinancialOrder). No bridge exists from checkout → FinancialOrder, so **invoices are never auto-created from API checkout**, and financial/tax modeling is manual/Filament-only. Additional risks: API v1 checkout/orders have **no authentication**; **two Money value objects** (Shared vs App) with different APIs; **OrderLockService** does not call **OrderCurrencySnapshotService** (currency snapshot columns never filled on lock); **Filament type errors** prevent full test suite from running. Strengths: solid tenant isolation, good RBAC and policies in Filament, strong inventory allocation and reservation design, comprehensive migrations and docs for newer features (invoicing, multi-location, multi-currency).
+### 1.1 Identification of Module Groups
 
----
+**Core modules (ecommerce, tenant DB):**
+- **Catalog** — Products (CRUD, activate/deactivate); product limit enforced.
+- **Cart** — Cart + items, convert to order; total in minor units.
+- **Checkout** — Orchestrator: cart → order (OrderModel) → promotion evaluation → payment intent; inventory reserve/allocate.
+- **Orders** — OrderModel, order_items; create, add item, confirm, pay, ship, cancel; domain Order entity + Eloquent repository.
+- **Payments** — Create payment intent, confirm payment; Payment entity; Stripe gateway; domain event PaymentSucceeded on markSucceeded.
+- **Inventory** — Stock (single-location: stock_items; multi-location: inventory_locations, inventory_location_stocks, reservations, movements, transfers); reserve/release/allocate.
 
-## 2. Module Status Matrix
+**Shared module (cross-cutting):**
+- **Shared** — Value objects (Money, TenantId, etc.), domain exceptions (CurrencyMismatchException, FeatureNotEnabledException, PaymentAlreadyProcessedException, FinancialOrderLockedException), messaging (EventBus, LaravelEventBus), TransactionManager, Audit (LogAuditEntry job, observers). Used by all tenant modules and some app-level services.
 
-| Module | Status | Completion % | Notes | Risk Level |
-|--------|--------|--------------|-------|------------|
-| **Tenancy (Stancl)** | Mostly Implemented | 90 | DB-per-tenant, bootstrappers, domain/subdomain; central_domains hardcoded | Medium |
-| **Catalog (Products/Categories)** | Mostly Implemented | 85 | API + Filament; categories Filament-only; product limit enforced | Low |
-| **Cart** | Mostly Implemented | 85 | API CRUD, convert to order; uses Shared Money | Low |
-| **Checkout** | Partially Implemented | 65 | Creates OrderModel only; no FinancialOrder; no auth on routes | **High** |
-| **Orders (ecommerce)** | Mostly Implemented | 80 | OrderModel, confirm/pay/cancel/ship; linked to inventory; no link to financial_orders | **High** |
-| **Financial Orders** | Partially Implemented | 70 | Full model, lock, tax, snapshot; not created from checkout; currency snapshot not filled on lock | **High** |
-| **Payments (tenant)** | Mostly Implemented | 75 | Create/confirm/refund; PaymentModel; ConfirmPayment marks orders table paid; no financial_transactions from API flow | **High** |
-| **Financial Transactions** | Partially Implemented | 60 | Table + listener for OrderPaid(FinancialOrder); only fired from Filament markPaid, not from API payment | **High** |
-| **Tax (tenant)** | Mostly Implemented | 85 | TaxRate, TaxCalculator, OrderLockService snapshots tax; FinancialOrder-only | Medium |
-| **Invoicing** | Mostly Implemented | 80 | Invoice from FinancialOrder, issue/pay/credit/void, PDF; auto-create only on Financial\OrderPaid (Filament path) | **High** |
-| **Multi-Location Inventory** | Mostly Implemented | 85 | Locations, stocks, movements, reservations, transfers; allocation in checkout; feature-gated | Medium |
-| **Multi-Currency** | Partially Implemented | 65 | Currencies, rates, conversion, settings; OrderCurrencySnapshotService never called from OrderLockService; payment/invoice snapshot columns unused in API flow | **High** |
-| **Customer Identity** | Mostly Implemented | 85 | Customers, addresses, Sanctum auth:customer, API auth; link guest orders; GDPR export/delete | Low |
-| **Promotions** | Skeleton Only | 15 | CustomerPromotionEligibilityService stub; no engine, no rules applied at checkout | Medium |
-| **Landlord Billing** | Mostly Implemented | 85 | Plans, features, subscriptions, Stripe webhook, idempotency; checkout/portal | Medium |
-| **RBAC (tenant)** | Mostly Implemented | 85 | Spatie, TenantRole, TenantPermissions, policies, TenantRoleSeeder; API routes do not use permission middleware | Medium |
-| **RBAC (landlord)** | Mostly Implemented | 80 | LandlordRole, super_admin, policies; Filament enforced | Low |
-| **Audit Logging** | Mostly Implemented | 85 | Tenant + landlord logs, observers, LogAuditEntry job, prune command; Filament read-only | Low |
-| **Feature Limits** | Mostly Implemented | 80 | tenant_feature(), tenant_limit(), FeatureResolver; products_limit in ProductResource; multi_currency / multi_location_inventory gating | Low |
-| **API (v1)** | Partially Implemented | 60 | Catalog, cart, checkout, orders, payments, inventory, customer — **no auth** on checkout/orders/catalog/cart/payments/inventory | **High** |
-| **Filament Tenant** | Mostly Implemented | 80 | Many resources; Filament 2/3 type issues in Landlord (AuditLogResource etc.) break test bootstrap | High |
-| **Filament Landlord** | Partially Implemented | 70 | Tenant, Plan, Feature, Subscription, Audit; Stripe webhook verified; type errors block tests | High |
-| **Queue / Jobs** | Partially Implemented | 60 | LogAuditEntry, ShouldQueue on some listeners; default database driver; no Horizon config in repo | Medium |
-| **Tests** | Partially Implemented | 55 | Good feature tests for Financial, Invoice, Customer, Multi-Location, Multi-Currency; **suite fails on Filament type error**; no auth tests for API | High |
+**Financial modules (app-level, tenant DB):**
+- **Financial** — FinancialOrder, FinancialOrderItem, FinancialOrderTaxLine, FinancialTransaction; OrderLockService, OrderPaymentService, FinancialOrderSyncService, TaxCalculator; OrderLocked / OrderPaid / OrderRefunded events.
+- **Invoice** — Invoice, invoice_items, invoice_payments, credit_notes; InvoiceService, InvoiceNumberGenerator; create from FinancialOrder, issue, applyPayment, credit note.
+- **Ledger** — ledgers, ledger_accounts, ledger_transactions, ledger_entries; LedgerService (createTransaction, validateBalanced, getOrCreateLedgerForTenant); listeners create ledger tx on OrderPaid and reversing tx on OrderRefunded.
+- **Currency (tenant)** — CurrencyService, ExchangeRateService, CurrencyConversionService, OrderCurrencySnapshotService, PaymentSnapshotService; currencies, exchange_rates, tenant_currency_settings; multi-currency feature-gated.
+- **Refund** — Refund model (refunds table); RefundService (validate refundable, create Refund + FinancialTransaction, dispatch OrderRefunded).
+- **Promotion** — Promotion, CouponCode, PromotionUsage; PromotionEvaluationService (pure), PromotionResolverService, RecordPromotionUsageService; applied at checkout; snapshot in order and financial order.
 
-**Status legend:** Not Started | Skeleton Only | Partially Implemented | Mostly Implemented | Production Ready
+**Billing (landlord) modules:**
+- **Landlord** — Tenants, domains, plans, features, plan_features, subscriptions; Stripe (checkout, webhook, portal); FeatureResolver, BillingAnalyticsService, FeatureUsageService; StripeWebhookController, BillingCheckoutController; SubscriptionCancelled and listeners.
+
+**Tenant modules (by responsibility):**
+- Same as Core + Financial above; all run in tenant context (tenant DB) except when FeatureResolver/BillingAnalyticsService read central DB.
+
+**Infrastructure modules:**
+- **Persistence** — Eloquent repositories (Order, Payment, Cart, Product, StockItem); OrderModel, PaymentModel, etc.; all use EventBus to publish domain events on save.
+- **HTTP** — API v1 routes (catalog, cart, checkout, orders, payments, inventory, customer, reports); FormRequests; JsonResource/Resource responses; tenant by subdomain (InitializeTenancyBySubdomain).
+- **Filament** — Tenant panel (/dashboard): resources for Products, Orders, Invoices, Financial Orders, Customers, Inventory, Currencies, Promotions, etc.; Landlord panel (/admin): Tenants, Plans, Subscriptions, Audit.
 
 ---
 
-## 3. Architecture Review
+### 1.2 Architecture Style and Boundaries
 
-### 3.1 Domain-Driven Design
+**Overall style:** **Modular monolith with DDD-ish layering and a strong service layer.**
 
-- **Modules (Catalog, Cart, Checkout, Orders, Payments, Inventory)** use Application/Domain/Infrastructure layers, Command/Handler pattern, and Repositories. Clear separation within each module.
-- **Landlord Billing** has Domain/Application/Infrastructure and Stripe gateway abstraction.
-- **Financial, Invoicing, Multi-Currency, Multi-Location** live in `app/Services`, `app/Models`, `app/Events` — not in Modules; mixed with Filament and domain concepts. **Inconsistency:** ecommerce “orders” vs “financial_orders” is a bounded context split without a unified facade or sync.
+- **Modular monolith:** Single deployable app; clear module boundaries (Catalog, Cart, Checkout, Orders, Payments, Inventory in `app/Modules/*`). Financial/Invoice/Ledger/Currency/Refund/Promotion live in `app/Services`, `app/Models`, `app/Listeners` — not under Modules, but with clear responsibilities.
+- **DDD-ish:** Application (Commands, Handlers, DTOs, Contracts), Domain (Entities, ValueObjects, Events, Exceptions), Infrastructure (Persistence, Gateways) within each module. Repositories and EventBus abstract persistence and messaging.
+- **Service layer:** CheckoutOrchestrator, OrderLockService, OrderPaymentService, FinancialOrderSyncService, InvoiceService, LedgerService, CurrencyConversionService, PromotionEvaluationService, RefundService, etc. encapsulate transactions and business rules.
 
-### 3.2 Separation of Concerns
+**Domain boundaries:**
+- **Sales boundary:** Cart → Checkout → Order (OrderModel) + Payment (Payments module). Single source of truth for “operational” order and payment status.
+- **Financial boundary:** FinancialOrder (synced from OrderModel on payment success), lock (tax + currency snapshot), mark paid → OrderPaid → Invoice, FinancialTransaction, Ledger transaction. Single source of truth for tax, invoice, and ledger.
+- **Bridge:** PaymentSucceeded (from Payments module, when payment is saved after markSucceeded) → SyncFinancialOrderOnPaymentSucceededListener → sync FinancialOrder, lock, markPaid → OrderPaid → invoice + financial_transaction + ledger. No duplicate order aggregate; operational order drives financial sync once.
 
-- **Checkout** orchestrates cart → order (OrderModel) → payment; does not touch FinancialOrder or OrderLockService.
-- **OrderPaymentService** and **OrderLockService** operate only on FinancialOrder; no integration with Modules\Orders or Modules\Payments.
-- **Dual order systems** create a **separation of concerns violation**: business has two sources of truth for “order” (orders vs financial_orders) with no defined sync or single writer.
+**Event-driven parts:**
+- **Domain events (aggregate → EventBus):** Payment entity records PaymentSucceeded on markSucceeded(); repository save() publishes via EventBus (LaravelEventBus dispatches to Laravel Dispatcher). Order entity records OrderPaid (Orders module) when markAsPaid(); that is separate from Financial\OrderPaid.
+- **Laravel event listeners:** PaymentSucceeded → SyncFinancialOrderOnPaymentSucceededListener (sync/lock/markPaid), OrderPaidListener (log, queued), SendOrderConfirmationEmailListener (queued). OrderPaid (Financial) → CreateInvoiceOnOrderPaidListener, CreateFinancialTransactionListener, CreateLedgerTransactionOnOrderPaidListener. OrderRefunded → CreateLedgerReversalOnOrderRefundedListener. CreateFinancialTransactionListener and AuditLogOrderStatusListener subscribe to OrderLocked/OrderPaid/OrderRefunded.
+- **Observers:** Product, Order, StockItem, User, Plan, Feature, Subscription, Tenant trigger audit (LogAuditEntry job or direct write).
 
-### 3.3 Dependency Direction
-
-- **Modules** depend on Shared (ValueObjects, Audit, TransactionManager); some depend on app-level services (InventoryAllocationService, CheckoutInventoryService). **Feature resolution** (tenant_feature, tenant_limit) pulls Landlord FeatureResolver into tenant code — acceptable for SaaS but creates a cross-boundary dependency.
-- **Infrastructure** correctly depends on Domain/Application; no Domain depending on Infrastructure.
-
-### 3.4 Service Layer
-
-- **OrderLockService**, **TaxCalculator**, **InvoiceService**, **CurrencyConversionService**, **InventoryAllocationService** are well-scoped and transactional where needed.
-- **OrderCurrencySnapshotService** exists but is **never invoked** from OrderLockService or any other path — currency snapshot columns on financial_orders remain null unless called manually.
-
-### 3.5 Transaction and Concurrency Safety
-
-- **CheckoutOrchestrator**, **ConfirmOrderHandler**, **CancelOrderHandler**, **InventoryAllocationService**, **InventoryTransferService** use DB transactions and/or row locking. **InvoiceNumberGenerator** uses row locking. Good.
-- **OrderPaymentService** uses a single DB::transaction; **InvoiceService** uses transactions for create/issue/applyPayment.
-
-### 3.6 Event-Driven Architecture
-
-- **OrderLocked** / **OrderPaid** (Financial) drive CreateFinancialTransactionListener and AuditLogOrderStatusListener; **OrderPaid** drives CreateInvoiceOnOrderPaidListener. All are **FinancialOrder**-based; **PaymentSucceeded** (Payments module) only triggers OrderPaidListener (log) and MarkOrderAsPaid for **orders** table. No event from API payment flow to FinancialOrder or Invoice.
-
-### 3.7 Value Objects
-
-- **Two Money types:** `App\ValueObjects\Money` (fromCents, convertWithRate) used by Invoice, Currency, Financial services; `App\Modules\Shared\Domain\ValueObjects\Money` (fromMinorUnits) used by Cart, Orders, Catalog, Payments. **Risk:** Boundary code (e.g. CheckoutOrchestrator) uses Shared Money for payment; no conversion at FinancialOrder boundary. **Inconsistency and potential bugs** if both are used in one flow.
-
-### 3.8 Financial Immutability and Snapshots
-
-- **FinancialOrder:** Lock sets snapshot, locked_at; no edits after lock in Filament. **Good.**
-- **Invoice:** Issued state locks; totals from snapshot. **Good.**
-- **OrderCurrencySnapshotService:** Not called from OrderLockService — **base_currency, display_currency, exchange_rate_snapshot, *_base_cents, *_display_cents** on financial_orders are never populated on lock. **Gap.**
-
-### 3.9 Audit Integrity
-
-- Observers and AuditLogger used for key models; LogAuditEntry job for async write. **Good.** No evidence of audit bypass in critical paths.
-
-### 3.10 Soft Deletes
-
-- Used on tenants, plans, features, subscriptions, products, orders, carts, customers, invoices, inventory_locations. Appropriate for audit and recovery. No misuse detected.
-
-### 3.11 Over-coupling and Missing Abstractions
-
-- **Checkout → OrderModel** is the only path; no abstraction for “create financial order from cart” or “sync order to financial order.” **Missing:** Single order aggregate or sync service that keeps orders and financial_orders aligned when payment is confirmed.
-- **API** has no auth abstraction (e.g. optional API key + tenant) for storefront vs public.
+**Cross-module dependencies:**
+- Checkout → Cart, Orders (OrderService), Payments (PaymentService), Inventory (InventoryService, InventoryAllocationService), Promotion (PromotionResolverService, PromotionEvaluationService). Checkout does not depend on Financial or Invoice directly; the link is PaymentSucceeded → SyncFinancialOrderOnPaymentSucceededListener.
+- FinancialOrderSyncService depends on OrderModel (Modules\Orders\Infrastructure). OrderLockService depends on TaxCalculator, OrderCurrencySnapshotService. LedgerService and CreateLedgerTransactionOnOrderPaidListener depend on FinancialOrder and Ledger models.
+- FeatureResolver (Landlord) is used in tenant context (CurrencyService, InventoryLocationService, CreateProductHandler, Filament) — cross-boundary read-only dependency.
 
 ---
 
-## 4. Tenancy Safety Review
+### 1.3 Logical Flows (Text)
 
-### 4.1 Database per Tenant
+**Checkout flow:**
+1. Client POST checkout (cartId, paymentProvider, customerEmail, customerId?, couponCodes?).
+2. CheckoutOrchestrator: getActiveCart → validateStock → (optional) reserveStock (single-location) or later allocateStock (multi-location).
+3. In transaction: createOrderFromCart (OrderModel + order_items) → (if multi-location) allocateStock(order).
+4. Promotion: getCandidates(tenant, couponCodes, customerId, email) → evaluate(subtotal, items, candidates, currency) → discount_total_cents, applied_promotions.
+5. Update OrderModel: discount_total_cents, total_amount = subtotal - discount, applied_promotions.
+6. createPayment(orderId, discounted amount, provider) → CreatePaymentHandler → Payment entity + gateway createPaymentIntent → return payment_id, client_secret.
+7. markCartConverted(cartId, orderId). Response: orderId, paymentId, clientSecret, amount, currency.
 
-- **Confirmed:** Tenant DBs created via Stancl (CreateDatabase, MigrateDatabase on TenantCreated). Tenant connection switched by bootstrappers. **Isolation is correct.**
+**Payment flow (confirm):**
+1. Client POST confirm-payment (paymentId, providerPaymentId).
+2. ConfirmPaymentHandler: find Payment → if status succeeded throw PaymentAlreadyProcessedException → confirmPayment (gateway) → payment.markSucceeded() → orderApplicationService.markOrderAsPaid(orderId) → paymentRepository.save(payment).
+3. On save, EloquentPaymentRepository publishes payment.pullDomainEvents() via EventBus → PaymentSucceeded dispatched to Laravel.
+4. SyncFinancialOrderOnPaymentSucceededListener (sync): load OrderModel → FinancialOrderSyncService.syncFromOperationalOrder (create or reuse FinancialOrder, copy items, discount, totals) → if not locked: OrderLockService.lock(financialOrder, null, null, order.applied_promotions) → OrderPaymentService.markPaid(financialOrder, providerReference) → PaymentSnapshotService.fillSnapshot(payment) → RecordPromotionUsageService.recordForOrder(...).
+5. OrderPaymentService.markPaid: status=paid, paid_at=now, event(OrderPaid(financialOrder, providerReference)).
+6. OrderPaid listeners: CreateInvoiceOnOrderPaidListener (idempotent), CreateFinancialTransactionListener (idempotent), CreateLedgerTransactionOnOrderPaidListener.
 
-### 4.2 Tenant ID Leakage
+**Financial flow:**
+1. Operational order paid (above) → SyncFinancialOrderOnPaymentSucceededListener creates/gets FinancialOrder, locks it (tax + currency snapshot + applied_promotions in snapshot), marks paid.
+2. Lock: TaxCalculator on FinancialOrder items → tax lines + subtotal/tax_total/total; discount_total_cents applied; buildSnapshot (items, tax_lines, applied_promotions); OrderCurrencySnapshotService.fillSnapshot (base/display amounts if multi-currency); status → pending, locked_at set.
+3. Mark paid: status → paid, paid_at set; OrderPaid dispatched.
+4. FinancialTransaction (TYPE_CREDIT, amount=order.total_cents) created by CreateFinancialTransactionListener (idempotent).
+5. Ledger: CreateLedgerTransactionOnOrderPaidListener creates balanced transaction (Debit CASH, Credit REV, Credit TAX) with reference_type=financial_order, reference_id=financial_order.id.
 
-- **tenant_id** on tenant tables (products, orders, financial_orders, invoices, customers, inventory_locations, etc.) and scopes (e.g. scopeForTenant, getEloquentQuery) used in Filament. **Currencies / exchange_rates** are **tenant-shared** (no tenant_id in schema); tenant_currency_settings and tenant_enabled_currencies are tenant-scoped. **Risk:** Exchange rates are global; any tenant can see any rate. **Design choice:** Likely intentional (shared reference data); document and ensure no tenant-specific rate leakage in UI.
+**Invoice flow:**
+1. CreateInvoiceOnOrderPaidListener handles OrderPaid: if config auto_generate_invoice_on_payment and no invoice for order_id → InvoiceService.createFromOrder(financialOrder).
+2. createFromOrder: copy from order snapshot, create invoice_items, generate invoice_number, status=draft, snapshot stored.
+3. Issue (manual or workflow): InvoiceService.issue(invoice) → status=issued, locked_at set; immutability guard prevents later changes to totals/snapshot.
+4. applyPayment: invoice_payments record, update status (partially_paid/paid), paid_at when fully paid.
+5. Credit notes: createCreditNote; balance reduced; snapshot preserved.
 
-### 4.3 Landlord vs Tenant Boundary
+**Ledger flow:**
+1. On OrderPaid: CreateLedgerTransactionOnOrderPaidListener gets/creates ledger for tenant, ensures default accounts (CASH, REV, TAX); creates LedgerTransaction with entries: Debit CASH total_cents, Credit REV (subtotal - discount), Credit TAX tax_total_cents; reference_type=financial_order, reference_id=order.id.
+2. On OrderRefunded: CreateLedgerReversalOnOrderRefundedListener creates reversing LedgerTransaction: Credit CASH refund amount, Debit REV (proportional), Debit TAX (proportional); reference_type=refund.
+3. LedgerService.createTransaction enforces validateBalanced (debits = credits); entries immutable (no update API).
 
-- **Central DB:** users, tenants, domains, plans, features, subscriptions, stripe_events, landlord_audit_logs, idempotency_keys. **Tenant DB:** all ecommerce and tenant-specific data. **No cross-DB FKs.** FeatureResolver reads from central (plan/features) and is used in tenant context — acceptable.
-
-### 4.4 Feature-Limit Enforcement
-
-- **tenant_feature('multi_currency')** and **tenant_feature('multi_location_inventory')** used in services and Filament (shouldRegisterNavigation, canCreate). **tenant_limit** used for products_limit. **Consistent** where applied; **not applied** to API (e.g. no limit check on product creation via API).
-
-### 4.5 Filament Panel Separation
-
-- **Landlord** panel for tenants, plans, subscriptions, audit; **Tenant** panel for store-specific resources. **Tenant panel** correctly scoped to tenant connection; **Landlord** uses central. **Good.**
-
----
-
-## 5. Financial Safety Review
-
-### 5.1 Money as Integer Minor Units
-
-- **orders:** total_amount (integer); **order_items:** unit_price_amount, total_price_amount (integer). **financial_orders:** subtotal_cents, tax_total_cents, total_cents (bigInteger). **invoices:** subtotal_cents, etc. **payments:** amount (unsignedBigInteger). **Good.** No float/decimal for money in core tables.
-
-### 5.2 Exchange Rate Snapshots
-
-- **financial_orders:** exchange_rate_snapshot, base_currency, display_currency, *_base_cents, *_display_cents columns exist but **OrderLockService does not call OrderCurrencySnapshotService** — they remain null. **Payment/invoice** snapshot columns exist; **payment flow** (Payments module) does not write to financial_orders or payment_amount_base / exchange_rate_snapshot on payments table. **Incorrect use:** Snapshots not used in the main checkout/payment path.
-
-### 5.3 No Dynamic Recalculation of Old Orders
-
-- **FinancialOrder** and **Invoice** are immutable after lock/issue; totals from snapshot. **Good.** (orders table is recalculated on confirm — different flow.)
-
-### 5.4 Currency Mixing
-
-- **Money** value objects throw on currency mismatch in add/subtract. **CurrencyConversionService** converts with snapshot. **Risk:** Two Money VOs; if a module passes wrong type or currency at boundary, errors could be late or unclear.
-
-### 5.5 Mutable Financial Records
-
-- **FinancialOrder** and **Invoice** are protected after lock/issue in Filament. **financial_transactions** are append-only. **Good.**
-
-### 5.6 Payment Consistency
-
-- **ConfirmPaymentHandler** marks **orders** table order as paid and saves payment (PaymentModel). **OrderPaymentService::markPaid(FinancialOrder)** is **only** called from Filament ViewInvoice; it updates **financial_orders** and dispatches **OrderPaid** (Financial). **No link** between PaymentModel (payments table) and FinancialOrder. **Risk:** Payment can succeed in Stripe and in payments table without any FinancialOrder or invoice being created or paid.
-
-### 5.7 Invoice Immutability
-
-- **InvoiceService** locks on issue; no edit of totals after. **Good.**
+**Wallet flow:**
+- **Not implemented.** No vendor/seller entity, no wallet, no commission or payout workflow. LedgerAccount::TYPE_PLATFORM_COMMISSION exists as a placeholder only.
 
 ---
 
-## 6. Inventory Safety Review
+## SECTION 2 — FOLDER STRUCTURE ANALYSIS
 
-### 6.1 Reservation System
+**app/**
+- **Console/Commands:** RetentionPruneCommand (audit, inventory_movements, stripe_events). Responsibility: scheduled cleanup. Clean.
+- **Constants/, Enums/:** LandlordPermissions, TenantPermissions, LandlordRole, TenantRole. Centralized RBAC. Clean.
+- **Events:** JobFailed (queue failure). Financial events (OrderPaid, OrderLocked, OrderRefunded) in Events/Financial. Clear.
+- **Filament/**  
+  - **Landlord:** Resources (Tenant, Plan, Feature, Subscription, AuditLog, etc.), Widgets (MRR, ActiveSubscriptions, RevenueByPlan, etc.). Panel /admin.  
+  - **Tenant:** Resources (Product, Order, Invoice, FinancialOrder, Customer, Inventory, Currency, Promotion, etc.), Widgets (Revenue today/30d, Orders today, Conversion, AOV, Top products, Usage vs plan), Pages (Billing, DomainSettings). Panel /dashboard.  
+  Responsibility: admin UI. Smell: some Landlord resources have Filament type issues ($navigationGroup) that break test bootstrap.
+- **Helpers:** tenant_features.php (tenant_feature, tenant_limit). Global helpers; used across tenant code. Acceptable.
+- **Http/Controllers:** HealthController, InvoicePdfDownloadController; Api/ReportsController. Thin; health and reports are cross-cutting. Clean.
+- **Jobs:** LogAuditEntry (ShouldQueue, queue=audit, tries/backoff). Audit write. Clean.
+- **Landlord/**  
+  Billing (Domain, Application, Infrastructure), Models (Tenant, Plan, Feature, Subscription, etc.), Services (StripeService, FeatureResolver, BillingAnalyticsService, FeatureUsageService), Http/Controllers, Policies, Events, Listeners. Responsibility: central platform. Clean separation from tenant.
+- **Listeners:** OrderPaidListener, SendOrderConfirmationEmailListener; Financial (SyncFinancialOrderOnPaymentSucceeded, CreateFinancialTransaction, CreateLedgerTransactionOnOrderPaid, CreateLedgerReversalOnOrderRefunded, AuditLogOrderStatus); Invoice (CreateInvoiceOnOrderPaid). Responsibility: react to events. Idempotency in key listeners. Clean.
+- **Models:** Mixed: Financial (FinancialOrder, FinancialOrderItem, FinancialOrderTaxLine, FinancialTransaction), Invoice (Invoice, InvoiceItem, etc.), Ledger (Ledger, LedgerAccount, LedgerTransaction, LedgerEntry), Refund (Refund), Promotion (Promotion, CouponCode, PromotionUsage), Currency (Currency, ExchangeRate, TenantCurrencySetting, etc.), Inventory (InventoryLocation, InventoryMovement, etc.), Customer (Customer, CustomerAddress), Invoice (CreditNote). Responsibility: Eloquent models for tenant (and some central). Smell: not under Modules; some duplication of “domain” concepts (e.g. FinancialOrder vs Order entity in Modules\Orders).
+- **Observers:** Product, Order, StockItem, User, Plan, Feature, Subscription, Tenant → audit. Clean.
+- **Policies:** Tenant-scoped (Product, Order, Customer, Invoice, Currency, Inventory) and Landlord (Plan, Tenant, Subscription). Used in Filament; not on API routes. Clear.
+- **Providers:** AppServiceProvider (rate limiters, failed job handling, policies, observers), EventServiceProvider (event/listener and subscribe), TenancyServiceProvider, Filament panel providers. Standard.
+- **Services:**  
+  **Financial:** OrderLockService, OrderPaymentService, FinancialOrderSyncService, RefundService, PaymentSnapshotService, TaxCalculator.  
+  **Invoice:** InvoiceService.  
+  **Ledger:** LedgerService.  
+  **Currency:** CurrencyService, ExchangeRateService, CurrencyConversionService, OrderCurrencySnapshotService.  
+  **Promotion:** PromotionEvaluationService, PromotionResolverService, RecordPromotionUsageService.  
+  **Reporting:** RevenueReportService, TaxReportService, TopProductsReportService, ConversionReportService.  
+  **Customer:** CustomerPromotionEligibilityService.  
+  **Inventory:** InventoryLocationService, InventoryAllocationService, InventoryTransferService.  
+  Responsibility: application services and domain logic. Well-scoped; some live next to Models rather than under a module. Acceptable.
 
-- **Multi-location:** InventoryReservation rows; **allocateStock(Order)** reserves by order_id; **releaseReservation** / **confirmReservation** used on cancel and confirm. **Single-location:** stock_items.reserved_quantity; reserve/release in InventoryStockService. **Correct.**
+**app/Modules/**
+- **Catalog:** Application (Handlers, Commands), Domain (Entities, Events), Infrastructure (Persistence), Http/Api (Controllers, Requests, Resources). Clear DDD layers. Clean.
+- **Cart:** Same structure; ConvertCartHandler, OrderCreationService bridge to Orders. Clean.
+- **Checkout:** Application (Commands, Contracts, DTOs, Exceptions, Services), Infrastructure (Services implementing contracts). Orchestrator depends on Cart, Order, Payment, Inventory, Promotion. Clean.
+- **Orders:** Application (Commands, Handlers, Services, DTOs), Domain (Entities, Events, ValueObjects), Infrastructure (Persistence OrderModel, OrderItemModel). Clean.
+- **Payments:** Application (Commands, Handlers, Services), Domain (Entities, Events, ValueObjects, Contracts), Infrastructure (Persistence, Gateways). PaymentSucceeded emitted from entity; repository publishes. Clean.
+- **Inventory:** Application (Commands, Handlers, DTOs, Services), Domain (Repositories), Infrastructure (Persistence). Clean.
 
-### 6.2 Overselling Prevention
+**app/Modules/Shared/**
+- **Domain:** ValueObjects (Money, TenantId, etc.), Exceptions (CurrencyMismatchException, FeatureNotEnabledException, PaymentAlreadyProcessedException, FinancialOrderLockedException, InvalidValueObject, DomainException). Contracts (Command, DomainEvent). Single canonical Money; currency-strict. Clean.
+- **Infrastructure:** Messaging (EventBus, LaravelEventBus), Persistence (TransactionManager). Used by all modules. Clean.
 
-- **validateStock** before checkout; **allocateStock** uses lockForUpdate and checks quantity >= reserved + requested. **PreventOversellingTest** exists. **Good.**
+**Domain/** (within each module)
+- Entities, ValueObjects, Events, Exceptions, Repositories (interfaces). No infrastructure imports. Dependency direction correct.
 
-### 6.3 Movement Ledger
+**Application/** (within each module)
+- Commands, Handlers, DTOs, Contracts (e.g. CartService, OrderService). Handlers use repositories and domain entities. Clean.
 
-- **inventory_movements** append-only; **InventoryMovementLogger** used by adjustment and transfer services. **Good.**
+**Infrastructure/** (within each module)
+- Persistence (Eloquent repositories, models), Gateways (e.g. StripePaymentGateway). Implements domain interfaces. Clean.
 
-### 6.4 Transfer Atomicity
+**Services/** (app-level)
+- As above. Responsibility: cross-module or non-module services (Financial, Invoice, Ledger, Currency, Promotion, Reporting). Separation is by feature; no circular dependency. Slight smell: “Services” is a broad bucket; could be grouped as Financial/, Promotion/, etc. (partially done).
 
-- **InventoryTransferService** runs in DB::transaction; decrease source, increase destination, movements. **Good.**
+**Listeners/** and **Events/**
+- Events: Financial (OrderPaid, OrderLocked, OrderRefunded), JobFailed. Listeners: Financial, Invoice, OrderPaidListener, SendOrderConfirmationEmailListener, SubscriptionCancelledListener. Clear mapping in EventServiceProvider. Clean.
 
-### 6.5 Negative Stock Protection
+**Policies/**
+- All under app/Policies (tenant) and app/Landlord/Policies. Consistent naming and registration. Clean.
 
-- **InventoryAllocationService** and **InventoryStockAdjustmentService** check for negative quantity. **Good.**
+**ValueObjects/**
+- Canonical: app/Modules/Shared/Domain/ValueObjects/Money. No App/ValueObjects (removed). Currency enforced in Money (add/subtract same currency). Clean.
 
-### 6.6 Low Stock Detection
+**Console/**
+- Single command: retention:prune. Scheduler entry in routes/console.php. Clean.
 
-- **LowStockDetected** event dispatched from **InventoryStockAdjustmentService**; **LowStockLocationsWidget** and **OutOfStockProductsWidget** exist. **Good.**
-
----
-
-## 7. Security Review
-
-### 7.1 RBAC Enforcement
-
-- **Filament** uses policies (Product, Order, Customer, Invoice, Inventory, Currency, etc.) and permission checks. **TenantRoleSeeder** assigns VIEW_*/MANAGE_* to roles. **Good.**
-
-### 7.2 Policy Usage
-
-- **Policies** registered in AppServiceProvider for ProductModel, OrderModel, Customer, Invoice, Currency, InventoryLocation, StockItemModel; Landlord for Plan, Tenant, Subscription. **API controllers** do **not** use policy checks — only tenancy middleware. **Gap.**
-
-### 7.3 Missing Authorization
-
-- **api/v1:** No auth on catalog, cart, checkout, orders, payments, inventory. **Customer** routes use auth:customer. **Landlord api/landlord:** Billing routes (plans, subscribe, etc.) have **no auth** in route files; webhook is public by design. **Risk:** Unauthenticated access to create orders, payments, and checkout.
-
-### 7.4 Public Route Exposure
-
-- **Checkout** and **orders** are public by subdomain; any client can POST checkout and confirm payment if they know or guess IDs. **Critical for production.**
-
-### 7.5 Mass Assignment
-
-- **Models** use $fillable; **FinancialOrder**, **Invoice**, **OrderModel** restrict fields. **No obvious mass-assignment exposure** in audited code.
-
-### 7.6 Validation
-
-- **FormRequests** used for API and customer endpoints. **Good.** Not every endpoint re-audited for strictness.
-
-### 7.7 Payment Webhook Verification
-
-- **StripeWebhookController** verifies signature with config('services.stripe.webhook_secret'). **Idempotency** via stripe_events table. **Good.**
-
-### 7.8 API Rate Limiting
-
-- **Customer** register/login/forgot/reset use throttle names. **General API** (checkout, orders, catalog, cart, payments) has **no rate limiting** in route files. **Risk:** DoS and abuse.
-
----
-
-## 8. Performance Review
-
-### 8.1 DB Indexes
-
-- **Tenant migrations** include indexes on tenant_id, status, order_id, invoice_id, (tenant_id, status), (tenant_id, email), (product_id, location_id), etc. **Reasonable coverage.** No full audit of every query path.
-
-### 8.2 N+1 Risk
-
-- **Filament** relation managers and tables use with() in some places; **InventoryAllocationService** loads order with items. **Potential N+1** in list views (e.g. orders with items, invoices with items) if not eager-loaded — not fully verified.
-
-### 8.3 Large Table Growth
-
-- **tenant_audit_logs**, **landlord_audit_logs**, **inventory_movements** are append-only. **PruneAuditLogsCommand** exists. **Movement** table has no prune in repo — may grow unbounded.
-
-### 8.4 Caching
-
-- **ExchangeRateService::getCurrentRate** cached; **Spatie Permission** cached. **No cache** for tenant settings, feature flags, or product/stock lists in API.
-
-### 8.5 Dashboard Queries
-
-- **RevenueByCurrencyWidget** uses FinancialOrder::query()->selectRaw(...)->groupBy('currency') — **groupBy on Eloquent** can be fragile; **CurrencyDistributionWidget** runs multiple queries. **Acceptable** for small/medium tenants; may need optimization at scale.
-
-### 8.6 Eager Loading
-
-- **OrderModel::with('items')** used in allocation and checkout. **Filament** resources vary; some use ->with() in modifyQueryUsing. **Not consistently audited.**
+**Filament/**
+- Two panels; discoverResources/discoverWidgets for Tenant and Landlord. Many resources use modifyQueryUsing(…->with(...)) to avoid N+1. Smell: Landlord AuditLogResource (and possibly others) type incompatibility with Filament 3 blocks full test run.
 
 ---
 
-## 9. Test Coverage Review
+## SECTION 3 — DOMAIN PRIMITIVES
 
-### 9.1 Unit Tests
+**Money value object:**  
+Single canonical: `App\Modules\Shared\Domain\ValueObjects\Money`.  
+- Immutable, readonly. Constructor private.  
+- `fromMinorUnits(int, string $currency)`, `getMinorUnits()`, `getCurrency()`, `equals`, `add`, `subtract`, `multiply`, `toArray`, `__toString`/`format`.  
+- Deprecated aliases: `amountInMinorUnits()`, `currency()` for backward compatibility.  
+- Arithmetic throws `CurrencyMismatchException` on mismatch. No float; integer minor units only.
 
-- **MoneyTest** (Unit) for App\ValueObjects\Money. **Shared Money** and other domain units not fully covered.
+**Currency logic:**  
+- Tenant: CurrencyService (getTenantBaseCurrency, listEnabledCurrencies, ensureMultiCurrencyAllowed → throws FeatureNotEnabledException), ExchangeRateService (getCurrentRate, getRateAt, setManualRate), CurrencyConversionService (convert, convertWithSnapshot; rounding by tenant strategy). OrderCurrencySnapshotService fills financial_orders base/display/snapshot on lock. PaymentSnapshotService fills payments (payment_currency, payment_amount, exchange_rate_snapshot, payment_amount_base) on confirmation.  
+- All monetary amounts in services use Money or integer minor units; conversion returns Money or structured array with converted minor units.
 
-### 9.2 Feature Tests
+**Snapshot logic:**  
+- **FinancialOrder:** snapshot JSON (items, tax_lines, applied_promotions, locked_at, currency, totals) built in OrderLockService.buildSnapshot; immutable after lock (booted() guard).  
+- **Order (operational):** applied_promotions JSON; copied to FinancialOrder on sync; passed to lock for snapshot.  
+- **Invoice:** snapshot from order; locked at issue; immutability guard in booted().  
+- **Payment:** payment_currency, payment_amount, exchange_rate_snapshot, payment_amount_base set on confirm; guard prevents change when status=succeeded.
 
-- **Financial:** OrderCalculationTest, TaxCalculationTest, SnapshotImmutabilityTest, RefundOverpaymentTest.
-- **Invoice:** InvoiceFromOrderSnapshotTest, InvoiceLockedAfterIssuanceTest, InvoicePaymentBalanceTest, CreditNoteExceedsTotalTest, InvoiceNumberUniqueTest, InvoiceSnapshotImmutabilityTest, InvoicePdfGeneratedTest.
-- **CustomerIdentity:** Registration, Login, RateLimit, EmailVerification, OrderLinked, FirstPurchasePromotion, GuestCheckoutAndLink, AccountDeletion, Anonymize.
-- **Multi-Location Inventory:** CreateLocation, AdjustStock, ReserveStock, PreventOverselling, TransferStock, CancelOrderReleasesStock, MovementLogInserted, MultiLocationFeatureLimit.
-- **Multi-Currency:** EnableCurrency, SetExchangeRate, ConvertMoney, OrderSnapshotImmutability, PaymentDifferentCurrency, HistoricalRateConversion, FeatureLimitEnforcement, RoundingCorrectness.
-- **Audit, Rbac, TenantPanel, LandlordPanel, StripeWebhook, CheckoutFlow, PlanLimitEnforcement** present.
+**Immutable models:**  
+- **FinancialOrder:** updating() reverts financial/snapshot fields if status !== draft.  
+- **Invoice:** updating() reverts totals/snapshot if status already issued/paid/... or locked_at set.  
+- **PaymentModel:** updating() reverts snapshot fields if status === succeeded.  
+- Ledger entries: no update API; append-only.
 
-### 9.3 Critical Path Coverage
+**Domain exceptions:**  
+- CurrencyMismatchException, InvalidValueObject (Shared).  
+- FeatureNotEnabledException (forFeature, forLimit), PaymentAlreadyProcessedException, FinancialOrderLockedException (Shared).  
+- Used in Money, CurrencyService, InventoryLocationService, CreateProductHandler, ConfirmPaymentHandler; API returns 403 for FeatureNotEnabledException.
 
-- **Order flow (API):** CheckoutFlowTest exists; **FinancialOrder** path not tested end-to-end (no test that checkout creates FinancialOrder or that payment confirms it).
-- **Payment flow:** Stripe webhook and payment confirm tested in isolation; **no test** that ConfirmPayment → OrderPaid (Financial) or Invoice creation.
-- **Inventory reservation:** Covered by Multi-Location tests.
-- **Currency conversion:** Covered by Multi-Currency tests.
-- **Feature limits:** PlanLimitEnforcement, MultiLocationFeatureLimit, Multi-Currency feature limit tests.
-- **Tenant isolation:** Tests use Tenant::create and tenancy()->initialize; no cross-tenant tests in the list.
-
-### 9.4 High-Risk Untested Areas
-
-- **Checkout → FinancialOrder / Invoice** (no bridge; no test).
-- **API auth** (no tests for unauthenticated vs authenticated access).
-- **OrderPaymentService** and **CreateInvoiceOnOrderPaidListener** only triggered from Filament path; **no test** that API payment triggers them (they don’t).
-- **Full test suite** fails on **Filament** type error (AuditLogResource etc.), so **many tests cannot run** in current state.
-
----
-
-## 10. Technical Debt List
-
-### Quick Fixes
-
-1. **Call OrderCurrencySnapshotService::fillSnapshot in OrderLockService** after building snapshot (and ensure tenant context is set) so base_currency, display_currency, exchange_rate_snapshot and base/display amounts are populated on lock.
-2. **Fix Filament Resource type incompatibility** (e.g. AuditLogResource, FeatureResource, TenantResource, PlanResource, SubscriptionResource) — align `$navigationGroup` / `$navigationIcon` and method signatures with Filament 3 so the test suite can run.
-3. **Move central_domains** to env (e.g. CENTRAL_DOMAINS) so production domains are not code changes.
-4. **Add rate limiting** to api/v1 checkout, orders, and catalog (and optionally payments/inventory).
-
-### Medium Refactors
-
-1. **Unify or bridge order systems:** Either (a) create FinancialOrder from checkout (and lock when payment is initiated) and sync status from PaymentSucceeded (e.g. listener that finds or creates FinancialOrder by order_id and calls markPaid), or (b) deprecate one system and migrate. Document and implement a single path from “checkout completed + payment succeeded” to “invoice can be created.”
-2. **Single Money VO:** Choose one (e.g. App\ValueObjects\Money with fromCents/fromMinorUnits) and use it everywhere; add adapter at module boundaries if needed.
-3. **API auth:** Define storefront auth (e.g. optional API key + tenant, or session for same-origin). Add middleware to checkout/orders/payments and add tests.
-4. **Plan limit enforcement:** Centralize in one service (e.g. PlanLimitEnforcer) and call from both Filament and API for product (and any other limited) creation.
-
-### Critical Architecture Corrections
-
-1. **Payment → FinancialOrder / Invoice:** Implement a consistent path: when payment succeeds (e.g. ConfirmPaymentHandler or PaymentSucceeded listener), either create/update FinancialOrder and fire OrderPaid(FinancialOrder) so that financial_transactions and (optional) invoice are created, or explicitly document that invoicing is Filament-only and disable auto-invoice for API orders.
-2. **Financial order creation from checkout:** If product is to support “invoice for every paid order,” either create FinancialOrder (and lock) when order is created at checkout (with snapshot from cart), or create it when payment is confirmed and link by order_id (or external_id). Ensure OrderLockService (and optionally OrderCurrencySnapshotService) is invoked in that path.
-3. **Payment table currency snapshot:** When recording payment (e.g. in Payments module or in a new listener), if payment currency differs from order currency, call CurrencyConversionService::convertWithSnapshot and store payment_currency, payment_amount, exchange_rate_snapshot, payment_amount_base on payments table (or equivalent).
+**Evaluation:**  
+- **Money unified:** Yes; single class in Shared; no duplicate in App\ValueObjects.  
+- **Float usage:** Only where required: percentages (e.g. tax rate, promotion percentage), exchange rate (decimal), rounding helpers (CurrencyConversionService::round). All money storage and Money VO use integers.  
+- **Duplicated primitives:** None for Money.  
+- **Currency enforced:** Strict in Money (add/subtract); CurrencyConversionService used for cross-currency; FeatureNotEnabledException when multi_currency not enabled and conversion/settings accessed.
 
 ---
 
-## 11. Production Readiness Score
+## SECTION 4 — FINANCIAL INTEGRITY LAYER
 
-| Dimension | Score (0–10) | Notes |
-|-----------|--------------|--------|
-| **Architecture** | 6 | Clear modules and DDD in places; dual order system and no checkout→financial path hurt. Two Money VOs. |
-| **Financial Integrity** | 5 | Money as integer and snapshot design are good; currency snapshot not filled on lock; payment/invoice decoupled from API checkout. |
-| **Multi-Tenant Safety** | 8 | DB-per-tenant, scopes, feature limits. Exchange rates global (document). |
-| **Security** | 4 | RBAC and policies good in Filament. API v1 and landlord billing unauthenticated; no rate limits on critical paths. |
-| **Performance** | 6 | Indexes present; some N+1 and cache opportunities; movement table growth. |
-| **Test Coverage** | 5 | Good feature tests for many areas; suite broken by Filament; critical checkout→financial path untested. |
+**FinancialOrder structure:**  
+- Tables: financial_orders (subtotal_cents, tax_total_cents, discount_total_cents, total_cents, currency, base_currency, display_currency, exchange_rate_snapshot, *_base_cents, *_display_cents, status, snapshot, locked_at, paid_at), financial_order_items, financial_order_tax_lines.  
+- Sync from OrderModel (FinancialOrderSyncService) on payment success; then lock (tax + currency snapshot + applied_promotions in snapshot). Immutability guard when status !== draft.  
+- **Safe:** Single financial aggregate per operational order after sync; lock path uses TaxCalculator and OrderCurrencySnapshotService; snapshot and totals immutable after lock.
 
-**Overall Production Readiness Score: 34 / 60 → ~57/100** (weighted average of dimensions, normalized to 100).
+**Payment snapshot enforcement:**  
+- PaymentModel: payment_currency, payment_amount, exchange_rate_snapshot, payment_amount_base. PaymentSnapshotService.fillSnapshot on confirmation (multi-currency: convertWithSnapshot; else rate 1).  
+- booted() on PaymentModel: when status === succeeded, revert any change to snapshot fields.  
+- **Safe:** Snapshot set once on confirm; then protected.
 
-**Verdict:** Not production-ready for high GMV without addressing the **critical** items: order/payment/invoice alignment, API auth, and currency snapshot on lock. Filament fixes and test suite stability are also required for confidence.
+**Invoice immutability:**  
+- InvoiceService.issue sets status=issued, locked_at.  
+- Invoice booted(): if status already issued/paid/partially_paid/refunded or locked_at set, revert subtotal/tax/discount/total/currency/snapshot on update.  
+- **Safe:** No change to totals or snapshot after issue.
 
----
+**Ledger system:**  
+- Implemented. Ledgers, ledger_accounts, ledger_transactions, ledger_entries. LedgerService.createTransaction(..., entries) with validateBalanced (debits = credits).  
+- CreateLedgerTransactionOnOrderPaidListener: Debit CASH, Credit REV, Credit TAX. CreateLedgerReversalOnOrderRefundedListener: Credit CASH, Debit REV, Debit TAX (proportional).  
+- **Safe:** Balanced transactions only; entries immutable; reference to financial_order/refund.
 
-## 12. Recommended Roadmap
+**Double-entry correctness:**  
+- validateBalanced throws if sum(debits) !== sum(credits). Entries have type (debit/credit) and amount_cents (non-negative).  
+- **Safe:** No unbalanced transaction can be created.
 
-### Phase 1 — Critical Fixes (Blockers)
+**Refund handling:**  
+- RefundService: validates refundable (paid - refunded), creates Refund record, creates FinancialTransaction TYPE_REFUND, updates Refund (status, financial_transaction_id), sets FinancialOrder status REFUNDED, dispatches OrderRefunded.  
+- CreateFinancialTransactionListener (OrderRefunded): idempotent (skips if same order/amount/type REFUND already exists). CreateLedgerReversalOnOrderRefundedListener: reversing entries.  
+- **Safe:** Over-refund prevented; ledger reversal; idempotent financial transaction.
 
-1. **Define and implement order/payment/invoice flow:** Decide whether every paid order (from API) must have a FinancialOrder and optional invoice. If yes: (a) add listener to PaymentSucceeded (or ConfirmPaymentHandler) that creates or finds FinancialOrder by order_id (or link table), locks it (OrderLockService), marks it paid (OrderPaymentService), so OrderPaid (Financial) fires and CreateInvoiceOnOrderPaidListener runs; or (b) create FinancialOrder at checkout and update it on payment success. Ensure OrderLockService (and OrderCurrencySnapshotService if multi-currency) is in the path.
-2. **Secure API v1:** Add auth (e.g. Sanctum API token or optional bearer) to checkout, orders, payments, and optionally catalog/inventory; document intended client (storefront). Add tests for unauthenticated rejection and authenticated success.
-3. **Fix Filament type errors** so that the full test suite runs (Landlord and Tenant panels). Resolve $navigationGroup / $navigationIcon and any Schema/Infolist signatures for Filament 3.
-4. **Call OrderCurrencySnapshotService::fillSnapshot** from OrderLockService after locking (when base_currency/display_currency are needed), so multi-currency columns are populated for every locked FinancialOrder.
+**Idempotency protection:**  
+- ConfirmPaymentHandler: throws PaymentAlreadyProcessedException if payment already succeeded.  
+- SyncFinancialOrderOnPaymentSucceededListener: skips if FinancialOrder already paid.  
+- CreateInvoiceOnOrderPaidListener: skips if invoice already exists for order_id.  
+- CreateFinancialTransactionListener (OrderPaid): skips if completed credit transaction for order exists; (OrderRefunded): skips if REFUND transaction for order+amount exists.  
+- **Safe:** Double payment confirm and duplicate invoice/transaction prevented.
 
-### Phase 2 — High Impact Improvements
+**What is risky:**  
+- If EventBus is null in EloquentPaymentRepository, PaymentSucceeded is never dispatched and financial sync never runs (dependency injection must provide LaravelEventBus).  
+- Partial refunds: proportional REV/TAX reversal is rounded; large refunds could leave minor rounding skew (acceptable in practice).
 
-1. **Unify Money usage:** Standardize on one Money VO (e.g. App\ValueObjects\Money) and use at boundaries; add fromMinorUnits if needed; refactor Modules to use it or add a thin adapter.
-2. **Payment record currency snapshot:** When saving payment (tenant payments table), if multi-currency, compute and store payment_currency, payment_amount, exchange_rate_snapshot, payment_amount_base (or equivalent) using CurrencyConversionService::convertWithSnapshot.
-3. **Rate limiting:** Apply throttle to api/v1 checkout, orders, catalog, and payments (and optionally inventory). Add tests.
-4. **Landlord API auth:** Protect api/landlord/billing (except webhook and success/cancel/portal return) with API token or internal-only network.
-5. **Central domains from env:** Move central_domains to CENTRAL_DOMAINS env; document and deploy.
-
-### Phase 3 — Scaling Improvements
-
-1. **Audit and movement retention:** Add prune or archive strategy for inventory_movements (and optionally audit logs) with retention policy and command.
-2. **Cache tenant settings and feature flags** where read-heavy (e.g. tenant_currency_settings, plan features).
-3. **Eager loading audit:** Review Filament list and detail pages for N+1; add with() where needed.
-4. **Queue and Horizon:** Document and configure Horizon (or equivalent) for production; ensure LogAuditEntry and other ShouldQueue listeners use a dedicated queue and workers.
-
-### Phase 4 — Enterprise Enhancements
-
-1. **Promotions engine:** Implement rule application at checkout (e.g. first_purchase, usage_limit_per_customer, customer_email) using CustomerPromotionEligibilityService and apply discounts to cart/order.
-2. **API versioning contract:** Document /api/v1 as mandatory; add header or path contract for future v2.
-3. **Read replicas / central DB scaling:** If central DB becomes a bottleneck, introduce read replicas for plan/feature/subscription reads.
-4. **Event stream for analytics:** Optionally publish high-value events (order placed, subscription changed) to a bus or queue for external analytics and reporting.
+**What is missing:**  
+- No automated reconciliation job (e.g. ledger vs financial_transactions).  
+- No explicit “invoice always created for paid order” contract test that runs in CI (covered by CheckoutToInvoiceFlowTest but suite may be blocked by Filament).
 
 ---
 
-*End of audit. All conclusions are from codebase analysis only; no code was modified.*
+## SECTION 5 — TENANCY & ISOLATION
+
+**How tenancy is implemented:**  
+- Stancl Tenancy; database-per-tenant. Central DB: users, tenants, domains, plans, features, subscriptions, stripe_events, landlord_audit_logs. Tenant DBs: all ecommerce, financial, invoice, ledger, promotion, customer, inventory data.  
+- Bootstrappers: Database, Cache, Filesystem, Queue switch to tenant connection/prefix when tenant is initialized.  
+- API v1: InitializeTenancyBySubdomain. Filament Tenant: InitializeTenancyByDomain. Central domains (e.g. localhost) do not initialize tenant.
+
+**Tenant isolation guarantees:**  
+- Each tenant has a dedicated DB; no shared tables for business data. tenant_id on tenant tables and scopeForTenant/where('tenant_id', ...) used in queries.  
+- FeatureResolver and BillingAnalyticsService read central DB (plan, features, subscriptions) when called in tenant context; they do not write to tenant DB from central.  
+- LedgerService.getOrCreateLedgerForTenant(tenantId) creates ledger in current connection (tenant); no cross-tenant writes.
+
+**Cross-tenant leakage risks:**  
+- Currencies and exchange_rates tables are in tenant DB but have no tenant_id (shared reference data per tenant DB). Low risk if each tenant DB is isolated.  
+- If a bug passed another tenant’s ID into a query without scopeForTenant, data could leak; code consistently uses tenant('id') or model scopes.  
+- API: tenant is inferred from subdomain/domain only; no tenant_id in body. Ensure subdomain resolution is correct in production.
+
+**Feature-limit enforcement layer:**  
+- Helpers: tenant_feature('multi_currency'), tenant_limit('products_limit'). Implemented via FeatureResolver (central DB).  
+- **API-level:** CreateProductHandler throws FeatureNotEnabledException forLimit('products_limit'). ProductController returns 403. CurrencyService.ensureMultiCurrencyAllowed throws forFeature('multi_currency'). InventoryLocationService throws forFeature('multi_location_inventory') when creating second location.  
+- **Filament:** ProductResource/CreateProduct, BillingPage, ExchangeRateResource, CurrencyResource, etc. use tenant_feature/tenant_limit and canCreate/registerNavigation.  
+- **Conclusion:** Feature enforcement is both API and UI; service layer is tenant-safe when tenant context is set (middleware/domain).
+
+---
+
+## SECTION 6 — PERFORMANCE & SCALABILITY
+
+**Queue usage:**  
+- Default connection: env QUEUE_CONNECTION (database/redis). Named queues: audit (LogAuditEntry), default (OrderPaidListener, SendOrderConfirmationEmailListener).  
+- CreateInvoiceOnOrderPaidListener, CreateFinancialTransactionListener, AuditLogOrderStatusListener, CreateLedgerTransactionOnOrderPaidListener, CreateLedgerReversalOnOrderRefundedListener, SyncFinancialOrderOnPaymentSucceededListener run **synchronously** to preserve tenant context.  
+- LogAuditEntry: tries=3, backoff=[5,30,60]. Queue::failing in AppServiceProvider logs and dispatches JobFailed event.
+
+**Horizon:**  
+- config/horizon.php present; supervisor groups for default, audit, financial, billing; production/local envs; worker counts and timeouts documented.
+
+**Indexing strategy:**  
+- Tenant migrations: indexes on tenant_id, status, order_id, (order_id, status) for invoices and payments, (tenant_id, status) for financial_orders, operational_order_id, created_at; promotions (tenant_id, is_active, starts_at, ends_at), coupon code, promotion_usages (promotion_id, customer_id/email); ledger (ledger_id, transaction_at); inventory (product_id, location_id, created_at).  
+- Composite indexes where filters combine (e.g. order_id + status). Reasonable for current query patterns.
+
+**N+1 risks:**  
+- Filament: many resources use modifyQueryUsing(…->with(['relation'])) (e.g. InvoiceResource with customer/order, OrderResource with items, SubscriptionResource with tenant/plan).  
+- Reporting services use aggregate queries (sum, count) or single-query + in-memory grouping (TopProductsReportService).  
+- Checkout and SyncFinancialOrderOnPaymentSucceededListener load order with items.  
+- **Verdict:** Mitigated in critical list/detail views; not every relation audited.
+
+**Caching:**  
+- Revenue/Tax/TopProducts/Conversion reports: Cache::remember, TTL 300s (5 min).  
+- CurrencyService.getSettings: Cache::remember (tenant_currency_settings), TTL from config.  
+- Exchange rates: cached in ExchangeRateService.  
+- BillingAnalyticsService (MRR, churn, plan distribution): TTL 300s.  
+- No cache for mutable financial aggregates.
+
+**Retention strategy:**  
+- config/retention.php: audit_days, inventory_movement_days, stripe_events_days.  
+- RetentionPruneCommand: prune tenant audit logs, inventory_movements (per tenant), landlord stripe_events; dry-run option.  
+- Scheduler: retention:prune daily at 02:00.  
+- Financial records (orders, invoices, ledger, financial_transactions) not pruned.
+
+**Readiness:**  
+- **Small SaaS:** Adequate (DB queue, single app, retention and indexes in place).  
+- **Growing SaaS:** Horizon + Redis queue recommended; monitor N+1 in new Filament pages; cache and indexes already support reporting.  
+- **High GMV marketplace:** Not applicable (no marketplace/vendor); for high GMV single-tenant stores: scale DB, Redis, Horizon; consider read replicas for reporting; ledger and idempotency already support integrity.
+
+---
+
+## SECTION 7 — WALLET / MARKETPLACE
+
+**Not implemented.**
+
+- No vendor/seller entity.  
+- No wallet or balance tracking for vendors.  
+- Ledger has LedgerAccount::TYPE_PLATFORM_COMMISSION as a placeholder only; no commission calculation or payout workflow.  
+- No refund adjustment logic for “vendor share” or marketplace commission.  
+- **Conclusion:** Pure B2B SaaS (tenant = merchant); no marketplace or vendor payables.
+
+---
+
+## SECTION 8 — TESTING COVERAGE
+
+**Feature tests:**  
+- CheckoutToInvoiceFlowTest (checkout → payment confirm → financial order, invoice, financial_transaction, snapshot; idempotent second confirm throws PaymentAlreadyProcessedException).  
+- FullFinancialIntegrityTest (multi-currency, snapshot, Money, double payment prevention).  
+- Invoice: InvoiceFromOrderSnapshotTest, InvoiceLockedAfterIssuanceTest, InvoicePaymentBalanceTest, CreditNoteExceedsTotalTest, InvoiceNumberUniqueTest, InvoiceSnapshotImmutabilityTest, InvoicePdfGeneratedTest.  
+- Financial: OrderCalculationTest, TaxCalculationTest, SnapshotImmutabilityTest, RefundOverpaymentTest.  
+- Multi-Currency: EnableCurrency, SetExchangeRate, ConvertMoney, OrderSnapshotImmutability, PaymentDifferentCurrency, HistoricalRateConversion, FeatureLimitEnforcement, RoundingCorrectness.  
+- Multi-Location Inventory: CreateLocation, AdjustStock, ReserveStock, PreventOverselling, TransferStock, CancelOrderReleasesStock, MovementLogInserted, MultiLocationFeatureLimit.  
+- CustomerIdentity: Registration, Login, RateLimit, EmailVerification, OrderLinked, FirstPurchasePromotion, GuestCheckoutAndLink, AccountDeletion, Anonymize.  
+- HealthEndpointTest, RateLimiterTest, IdempotentFinancialJobTest (OrderPaid twice → single invoice/transaction), TenantIsolationTest, StressCheckoutTest.  
+- Audit, Rbac, TenantPanel, LandlordPanel, StripeWebhook, CheckoutFlow, PlanLimitEnforcement.
+
+**Integration tests:**  
+- Helpers: create_tenant_product, create_cart_and_add_item, do_checkout, confirm_payment, create_tenant_stock. Used by feature tests. No standalone “integration” suite label.
+
+**Financial integrity tests:**  
+- FullFinancialIntegrityTest, CheckoutToInvoiceFlowTest, RefundOverpaymentTest, SnapshotImmutabilityTest, TaxCalculationTest, OrderCalculationTest.  
+- Invoice tests cover balance, credit note limit, snapshot immutability.
+
+**Ledger balancing tests:**  
+- Unit: LedgerServiceTest (validateBalanced accepts equal debit/credit; rejects unbalanced; rejects negative amount).  
+- No feature test that creates a real ledger transaction and asserts balance in DB (covered indirectly by OrderPaid → CreateLedgerTransactionOnOrderPaidListener in flow tests).
+
+**Multi-currency tests:**  
+- ConvertMoneyTest, HistoricalRateConversionTest, PaymentDifferentCurrencyTest, RoundingCorrectnessTest, OrderSnapshotImmutabilityTest, FeatureLimitEnforcementTest, SetExchangeRateTest, EnableCurrencyTest.
+
+**Idempotency tests:**  
+- CheckoutToInvoiceFlowTest (second confirm throws); IdempotentFinancialJobTest (double OrderPaid → one invoice, one transaction).
+
+**Weak areas:**  
+- Full suite may not run: Filament type errors (e.g. AuditLogResource $navigationGroup) cause fatal on bootstrap in some environments.  
+- No dedicated API auth tests (unauthenticated vs authenticated) for checkout/orders/payments.  
+- No end-to-end test that explicitly asserts ledger row counts and balance after payment and after refund.  
+- Promotion engine: PromotionEvaluationServiceTest (unit) exists; no full feature test with DB promotions and checkout with coupon codes.
+
+---
+
+## SECTION 9 — PRODUCTION READINESS SCORE
+
+| Dimension | Score (0–100) | Explanation |
+|-----------|----------------|--------------|
+| **Financial safety** | 82 | Single Money VO, integer minor units, snapshots on order/payment/invoice, immutability guards, idempotency on payment and invoice/transaction, balanced ledger, refund validation. Risk: EventBus must be bound; rounding in proportional refund. |
+| **Architecture cleanliness** | 78 | Clear modules and DDD in Modules; Shared single place for Money and exceptions; financial flow unified (PaymentSucceeded → sync/lock/markPaid → OrderPaid). Services/Models outside Modules are organized by feature. Some duplication (e.g. Order entity vs FinancialOrder) by design (operational vs financial). |
+| **Scalability** | 65 | DB-per-tenant scales with tenant count but increases ops. Queue/Horizon configured; critical financial listeners sync. Indexes and retention in place. No sharding or read replicas in code. |
+| **Maintainability** | 80 | Commands/Handlers, services, repositories, events; documentation (PHASE3, PHASE4, audit). Feature flags and limits centralized. Filament type issues and two “Order” concepts require onboarding. |
+| **Marketplace readiness** | 0 | No vendor, wallet, commission, or payout. Not applicable for current product. |
+| **Investor readiness** | 72 | Strong financial and tenant story; ledger and reporting in place; roadmap (phases) documented. Gaps: API auth, full test suite green, central_domains from env, optional API versioning and runbooks. |
+
+**Overall (equal weight, excluding marketplace):** (82+78+65+80+72)/5 ≈ **75/100**.
+
+---
+
+## SECTION 10 — WHAT IS DONE VS WHAT IS MISSING
+
+**DONE:**
+- Database-per-tenant (Stancl); central and tenant migrations; provisioning.
+- Catalog (products, categories); API + Filament; products_limit enforced in API and Filament.
+- Cart (create, add/update/remove item, convert); API; Shared Money.
+- Checkout: create order from cart, promotion evaluation (percentage/fixed/threshold/BOGO, stackable/exclusive, usage limits), discount and applied_promotions on order, create payment intent; inventory reserve/allocate (single and multi-location); coupon codes optional.
+- Orders: OrderModel, order_items; create, add item, confirm, pay, ship, cancel; domain Order + repository; link to customer_id and customer_email.
+- Payments: create/confirm; Payment entity; Stripe gateway; PaymentSucceeded on save; ConfirmPaymentHandler idempotent (PaymentAlreadyProcessedException).
+- Financial: FinancialOrder sync from OrderModel on PaymentSucceeded; OrderLockService (tax, snapshot, OrderCurrencySnapshotService); OrderPaymentService.markPaid; OrderPaid event; immutability guard on FinancialOrder.
+- Invoice: create from FinancialOrder, issue, applyPayment, credit note, PDF; immutability guard; auto-create on OrderPaid (idempotent).
+- Financial transactions: CreateFinancialTransactionListener (credit on OrderPaid, refund on OrderRefunded); idempotent.
+- Ledger: ledgers, accounts (REV, TAX, CASH, AR, REFUND); LedgerService (createTransaction, validateBalanced); ledger tx on OrderPaid; reversing tx on OrderRefunded.
+- Refund: Refund model; RefundService (validate, create Refund + FinancialTransaction, OrderRefunded); ledger reversal; idempotent listener.
+- Payment snapshot: PaymentSnapshotService on confirm; PaymentModel guard on snapshot fields.
+- Multi-currency: CurrencyService, ExchangeRateService, CurrencyConversionService, OrderCurrencySnapshotService; tenant_currency_settings; feature-gated.
+- Multi-location inventory: locations, stocks, movements, reservations, transfers; allocation in checkout; feature-gated.
+- Customer identity: customers, addresses, Sanctum auth:customer, API auth; guest link; GDPR export/delete.
+- Promotions: promotions, coupon_codes, promotion_usages; PromotionEvaluationService (pure), PromotionResolverService; usage recorded on payment; snapshot in order and financial order.
+- Reporting: RevenueReportService, TaxReportService, TopProductsReportService, ConversionReportService; cached; API /api/v1/reports/revenue, tax, products, conversion.
+- Filament Tenant: resources and widgets (revenue, orders, conversion, AOV, top products, usage vs plan); Landlord: MRR, subscriptions, RevenueByPlan; BillingAnalyticsService, FeatureUsageService.
+- Rate limiting: checkout, payment, webhook, login, customer-register/login/forgot/reset; applied on routes.
+- Retention: config and RetentionPruneCommand; scheduler.
+- Health: /health (DB, cache, queue).
+- RBAC: Spatie; Landlord and Tenant roles/permissions; policies in Filament.
+- Audit: tenant and landlord logs; observers; LogAuditEntry job; prune.
+- Tests: feature tests for checkout→invoice, financial integrity, idempotency, tenant isolation, stress; unit for Money, PromotionEvaluationService, LedgerService.
+
+**MISSING:**
+- API authentication for storefront (checkout, orders, payments, catalog, inventory): no auth middleware on these routes; only customer auth on customer/*.
+- Landlord API auth: billing routes (plans, subscribe, etc.) unauthenticated except webhook.
+- Central domains from env: central_domains in config are hardcoded; no CENTRAL_DOMains env.
+- Filament 3 type fixes: Landlord resources (e.g. AuditLogResource) $navigationGroup type so test suite can run without fatal.
+- Contract test that checkout→invoice and ledger run in CI without Filament bootstrap (or fix Filament so full suite runs).
+- Vendor/wallet/marketplace: not in scope for current product.
+- Read replicas / central DB scaling: not in code.
+- API versioning contract: only path prefix /api/v1; no formal versioning doc or header contract.
+
+---
+
+## SECTION 11 — TOP 10 ARCHITECTURAL RISKS
+
+1. **API v1 unauthenticated:** Checkout, orders, payments, catalog, inventory are callable by anyone who can reach the tenant subdomain. High abuse and fraud risk for production.
+2. **EventBus null:** If LaravelEventBus is not bound or repository is constructed with null EventBus, PaymentSucceeded is never dispatched and financial sync (invoice, ledger, financial transaction) never runs. Ensure binding and tenant context in all code paths that save Payment.
+3. **Filament type errors block tests:** Fatal on AuditLogResource (or similar) prevents full test suite from running; regressions in financial or checkout flow may go undetected.
+4. **Two “order” concepts:** Operational (OrderModel) and Financial (FinancialOrder) are documented and bridged by SyncFinancialOrderOnPaymentSucceededListener, but new developers must understand the split and that only the sync path creates invoices/ledger.
+5. **Central domains hardcoded:** Production central domains require code/config change; should be env-driven.
+6. **Landlord API unprotected:** Plans and subscription endpoints callable without auth; could allow unauthorized subscribe/cancel if exposed.
+7. **Rounding in refund ledger:** Proportional REV/TAX reversal uses round(); very large refunds could theoretically leave a 1-cent skew; acceptable but worth documenting.
+8. **N+1 not fully audited:** Filament and reporting have been partially optimized with with(); new resources or list pages could introduce N+1.
+9. **Queue driver default:** Default queue is database; for production scale Redis + Horizon should be explicit and documented so workers and failure handling are reliable.
+10. **No formal reconciliation:** No automated job comparing ledger totals to financial_transactions or invoice totals; operational reliance on correct listener execution and idempotency.
+
+---
+
+## SECTION 12 — STRATEGIC NEXT MOVE
+
+**Next technical phase:**  
+- **Secure API and fix test suite.** Add auth (e.g. Sanctum API token or bearer) to api/v1 checkout, orders, payments, and optionally catalog/inventory; document storefront client contract. Fix Filament Landlord resource types so the full test suite runs. Move central_domains to env. Add a smoke or contract test that runs checkout→payment→invoice→ledger without requiring full Filament bootstrap so CI can assert financial pipeline.
+
+**Next business expansion phase:**  
+- **Promotions and reporting in production.** Promotions and reporting APIs are implemented; validate with real tenants (coupon usage, report caching, dashboard widgets). Optionally add “trial conversion” and “churn” metrics to landlord dashboard if not already exposed. No marketplace/vendor in scope unless product strategy changes.
+
+**Risk reduction priority:**  
+1. **Critical:** API auth for checkout/orders/payments; EventBus binding verified in all environments.  
+2. **High:** Filament type fixes and green test suite; central_domains from env.  
+3. **Medium:** Landlord API auth; explicit Redis+Horizon for production; N+1 audit for new Filament pages.  
+4. **Low:** Reconciliation job (ledger vs financial_transactions); formal API versioning doc.
+
+---
+
+*End of complete technical audit. Conclusions are from codebase analysis only; no code was modified.*
