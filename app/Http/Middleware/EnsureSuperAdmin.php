@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Enums\LandlordRole;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Restricts access to Landlord Filament panel to users with super_admin role.
- * Use in panel authMiddleware. Aborts 403 if user is not super_admin.
+ * Restricts access to Landlord Filament panel to users with a landlord role.
+ * Aborts 403 if user has no landlord role. Policy checks restrict actions per role.
  */
 class EnsureSuperAdmin
 {
@@ -21,19 +22,21 @@ class EnsureSuperAdmin
             return redirect()->route('filament.landlord.auth.login');
         }
 
-        if (!$this->isSuperAdmin($user)) {
+        if (!$this->hasLandlordRole($user)) {
             abort(403, 'Only platform administrators can access this panel.');
         }
 
         return $next($request);
     }
 
-    private function isSuperAdmin($user): bool
+    private function hasLandlordRole($user): bool
     {
-        if (method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
-            return true;
+        if (method_exists($user, 'hasRole')) {
+            return $user->hasRole(LandlordRole::SuperAdmin->value)
+                || $user->hasRole(LandlordRole::SupportAgent->value)
+                || $user->hasRole(LandlordRole::FinanceAdmin->value);
         }
 
-        return $user->is_super_admin ?? false;
+        return (bool) ($user->is_super_admin ?? false);
     }
 }

@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\CheckTenantFeature;
 use App\Http\Middleware\EnsureTenantNotSuspended;
+use App\Http\Middleware\EnsureUserHasPermission;
+use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureTenantSubscriptionIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'subscription.active' => EnsureTenantSubscriptionIsActive::class,
             'tenant.not_suspended' => EnsureTenantNotSuspended::class,
             'idempotency' => \App\Http\Middleware\IdempotencyMiddleware::class,
+            'role' => EnsureUserHasRole::class,
+            'permission' => EnsureUserHasPermission::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

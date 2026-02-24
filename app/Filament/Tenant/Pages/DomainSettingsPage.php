@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Pages;
 
+use App\Constants\TenantPermissions;
 use Illuminate\Contracts\Support\Htmlable;
 
 class DomainSettingsPage extends Page
@@ -19,6 +20,12 @@ class DomainSettingsPage extends Page
     public static function getNavigationLabel(): string
     {
         return 'Domain';
+    }
+
+    /** Only users with manage domain permission can access. */
+    public static function canAccess(): bool
+    {
+        return tenant('id') !== null && auth()->user()?->can(TenantPermissions::MANAGE_DOMAIN) === true;
     }
 
     public function getTitle(): string|Htmlable

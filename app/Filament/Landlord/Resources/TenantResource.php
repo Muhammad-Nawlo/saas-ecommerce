@@ -79,14 +79,14 @@ class TenantResource extends Resource
                     ->label('Activate')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (Tenant $r) => ($r->status ?? 'active') !== 'active')
+                    ->visible(fn (Tenant $r) => ($r->status ?? 'active') !== 'active' && auth()->user()?->can('update', $r))
                     ->action(fn (Tenant $r) => $r->update(['status' => 'active']))
                     ->requiresConfirmation(),
                 Tables\Actions\Action::make('suspend')
                     ->label('Suspend')
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
-                    ->visible(fn (Tenant $r) => ($r->status ?? 'active') === 'active')
+                    ->visible(fn (Tenant $r) => ($r->status ?? 'active') === 'active' && auth()->user()?->can('update', $r))
                     ->action(fn (Tenant $r) => $r->update(['status' => 'suspended']))
                     ->requiresConfirmation(),
                 Tables\Actions\Action::make('viewSubscription')

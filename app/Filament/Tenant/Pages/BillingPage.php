@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Pages;
 
+use App\Constants\TenantPermissions;
 use App\Landlord\Models\Subscription;
 use App\Landlord\Models\Tenant;
 use App\Landlord\Services\StripeService;
@@ -23,6 +24,11 @@ class BillingPage extends Page
     public static function getNavigationLabel(): string
     {
         return 'Billing';
+    }
+
+    public static function canAccess(): bool
+    {
+        return tenant('id') !== null && auth()->user()?->can(TenantPermissions::MANAGE_BILLING) === true;
     }
 
     public function getTitle(): string|Htmlable
