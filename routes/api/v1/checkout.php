@@ -7,8 +7,14 @@ use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
+/*
+|--------------------------------------------------------------------------
+| Checkout API (tenant). All write operations require authentication.
+|--------------------------------------------------------------------------
+*/
 Route::middleware([
     'api',
+    'auth:sanctum',
     'throttle:checkout',
     InitializeTenancyBySubdomain::class,
     PreventAccessFromCentralDomains::class,
@@ -16,5 +22,5 @@ Route::middleware([
     ->prefix('checkout')
     ->group(function (): void {
         Route::post('/', [CheckoutController::class, 'checkout']);
-        Route::post('/confirm-payment', [CheckoutController::class, 'confirmPayment']);
+        Route::post('/confirm-payment', [CheckoutController::class, 'confirmPayment'])->middleware('throttle:payment-confirm');
     });

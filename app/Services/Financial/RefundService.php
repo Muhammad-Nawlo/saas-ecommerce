@@ -9,6 +9,7 @@ use App\Models\Financial\FinancialOrder;
 use App\Models\Financial\FinancialTransaction;
 use App\Models\Refund\Refund;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
@@ -68,6 +69,14 @@ final class RefundService
             $refund->update(['status' => Refund::STATUS_COMPLETED, 'financial_transaction_id' => $tx->id]);
             $order->status = FinancialOrder::STATUS_REFUNDED;
             $order->save();
+
+            Log::channel('stack')->info('refund_processed', [
+                'tenant_id' => $order->tenant_id,
+                'order_id' => $order->operational_order_id,
+                'financial_order_id' => $order->id,
+                'invoice_id' => null,
+                'ledger_transaction_id' => null,
+            ]);
 
             event(new OrderRefunded($order, $amountCents, $providerReference));
             return $refund->fresh();

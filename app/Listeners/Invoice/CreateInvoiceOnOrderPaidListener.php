@@ -28,12 +28,19 @@ class CreateInvoiceOnOrderPaidListener
             return;
         }
         try {
-            $this->invoiceService->createFromOrder($event->order);
+            $invoice = $this->invoiceService->createFromOrder($event->order);
+            \Illuminate\Support\Facades\Log::channel('stack')->info('invoice_created', [
+                'tenant_id' => $event->order->tenant_id,
+                'order_id' => $event->order->id,
+                'financial_order_id' => $event->order->id,
+                'invoice_id' => $invoice->id,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Auto-create invoice on order paid failed', [
                 'order_id' => $event->order->id,
                 'message' => $e->getMessage(),
             ]);
+            throw $e;
         }
     }
 }

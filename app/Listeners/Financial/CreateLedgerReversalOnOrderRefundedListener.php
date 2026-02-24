@@ -57,12 +57,18 @@ final class CreateLedgerReversalOnOrderRefundedListener
             ['account_id' => $tax->id, 'type' => 'debit', 'amount_cents' => $taxDebit, 'currency' => $order->currency, 'memo' => 'Tax reversal'],
         ];
 
-        $this->ledgerService->createTransaction(
+        $tx = $this->ledgerService->createTransaction(
             $ledger->id,
             'refund',
             $order->id,
             'Refund: ' . $order->order_number,
             $entries
         );
+        Log::channel('stack')->info('ledger_transaction_created', [
+            'tenant_id' => $tenantId,
+            'order_id' => $order->operational_order_id,
+            'financial_order_id' => $order->id,
+            'ledger_transaction_id' => $tx->id,
+        ]);
     }
 }

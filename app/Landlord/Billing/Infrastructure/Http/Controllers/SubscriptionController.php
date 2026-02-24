@@ -15,6 +15,7 @@ use App\Landlord\Billing\Infrastructure\Http\Requests\SubscribeTenantRequest;
 use App\Landlord\Billing\Infrastructure\Http\Resources\SubscriptionResource;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\Response;
 
 final class SubscriptionController
@@ -59,6 +60,7 @@ final class SubscriptionController
         if ($subscription === null) {
             return new JsonResponse(['message' => 'Subscription not found'], Response::HTTP_NOT_FOUND);
         }
+        Gate::authorize('view', $subscription);
         return new SubscriptionResource(SubscriptionDTO::fromSubscription($subscription));
     }
 }

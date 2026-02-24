@@ -13,14 +13,9 @@ return [
 
     /**
      * The list of domains hosting your central app.
-     *
-     * Only relevant if you're using the domain or subdomain identification middleware.
+     * Set via CENTRAL_DOMAINS env (comma-separated). Only relevant if using domain/subdomain identification.
      */
-    'central_domains' => [
-        '127.0.0.1',
-        'localhost',
-        'sass-ecommerce.test'
-    ],
+    'central_domains' => array_map('trim', array_filter(explode(',', env('CENTRAL_DOMAINS', '127.0.0.1,localhost,sass-ecommerce.test')))),
 
     /**
      * Tenancy bootstrappers are executed when tenancy is initialized.

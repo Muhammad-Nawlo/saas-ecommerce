@@ -7,8 +7,14 @@ use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
+/*
+|--------------------------------------------------------------------------
+| Payments API (tenant). All routes require authentication.
+|--------------------------------------------------------------------------
+*/
 Route::middleware([
     'api',
+    'auth:sanctum',
     'throttle:payment',
     InitializeTenancyBySubdomain::class,
     PreventAccessFromCentralDomains::class,
@@ -17,7 +23,7 @@ Route::middleware([
     ->group(function (): void {
         Route::post('/', [PaymentController::class, 'store']);
         Route::get('order/{orderId}', [PaymentController::class, 'indexByOrder']);
-        Route::post('{paymentId}/confirm', [PaymentController::class, 'confirm']);
+        Route::post('{paymentId}/confirm', [PaymentController::class, 'confirm'])->middleware('throttle:payment-confirm');
         Route::post('{paymentId}/refund', [PaymentController::class, 'refund']);
         Route::post('{paymentId}/cancel', [PaymentController::class, 'cancel']);
     });

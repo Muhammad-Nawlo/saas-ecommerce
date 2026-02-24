@@ -80,9 +80,9 @@ final class SyncFinancialOrderOnPaymentSucceededListener
                     $applied
                 );
             }
-            Log::info('Payment success: financial order synced and paid', [
+            Log::channel('stack')->info('payment_confirmed', [
                 'tenant_id' => $tenantId,
-                'operational_order_id' => $order->id,
+                'order_id' => $order->id,
                 'financial_order_id' => $financialOrder->id,
             ]);
         });

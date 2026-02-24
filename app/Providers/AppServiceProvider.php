@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Modules\Shared\Infrastructure\Messaging\EventBus;
+use App\Modules\Shared\Infrastructure\Messaging\LaravelEventBus;
 use App\Landlord\Models\Plan;
 use App\Landlord\Models\Subscription;
 use App\Landlord\Models\Tenant;
@@ -45,6 +47,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(EventBus::class, LaravelEventBus::class);
+
         $this->app->bind(
             \App\Contracts\Currency\RateProviderInterface::class,
             fn () => config('currency.rate_provider') === 'api'
@@ -91,6 +95,7 @@ class AppServiceProvider extends ServiceProvider
     {
         RateLimiter::for('checkout', fn () => Limit::perMinute(30)->by(request()->user()?->id ?: request()->ip()));
         RateLimiter::for('payment', fn () => Limit::perMinute(20)->by(request()->user()?->id ?: request()->ip()));
+        RateLimiter::for('payment-confirm', fn () => Limit::perMinute(10)->by(request()->user()?->id ?: request()->ip()));
         RateLimiter::for('webhook', fn () => Limit::perMinute(120)->by(request()->ip()));
         RateLimiter::for('login', fn () => Limit::perMinute(10)->by(request()->ip()));
     }

@@ -12,6 +12,10 @@ class OrderPaidListener implements ShouldQueue
 {
     public string $queue = 'default';
 
+    public int $tries = 3;
+
+    public array $backoff = [10, 60, 300];
+
     public function handle(PaymentSucceeded $event): void
     {
         Log::channel('stack')->info('Order paid', [

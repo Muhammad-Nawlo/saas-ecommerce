@@ -7,8 +7,15 @@ use Illuminate\Support\Facades\Route;
 use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
+/*
+|--------------------------------------------------------------------------
+| Cart API (tenant). All routes require authentication.
+|--------------------------------------------------------------------------
+*/
 Route::middleware([
     'api',
+    'auth:sanctum',
+    'throttle:api',
     InitializeTenancyBySubdomain::class,
     PreventAccessFromCentralDomains::class,
 ])

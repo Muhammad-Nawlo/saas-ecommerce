@@ -6,6 +6,7 @@ namespace App\Models\Invoice;
 
 use App\Models\Customer\Customer;
 use App\Models\Financial\FinancialOrder;
+use App\Modules\Shared\Domain\Exceptions\InvoiceLockedException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -124,21 +125,26 @@ class Invoice extends Model
         return in_array($this->status, [self::STATUS_ISSUED, self::STATUS_PAID, self::STATUS_PARTIALLY_PAID, self::STATUS_REFUNDED], true);
     }
 
+    private const LOCKED_ATTRIBUTES = ['subtotal_cents', 'tax_total_cents', 'discount_total_cents', 'total_cents', 'currency', 'snapshot'];
+
     /**
-     * Guard: block modification of totals and snapshot once invoice is issued.
+     * Guard: block modification of totals and snapshot once invoice is issued. Throws InvoiceLockedException.
      */
     protected static function booted(): void
     {
         static::updating(function (Invoice $invoice): void {
             $origStatus = $invoice->getOriginal('status');
             $alreadyIssued = in_array($origStatus, [self::STATUS_ISSUED, self::STATUS_PAID, self::STATUS_PARTIALLY_PAID, self::STATUS_REFUNDED], true);
-            if ($alreadyIssued || $invoice->getOriginal('locked_at') !== null) {
-                $invoice->subtotal_cents = $invoice->getOriginal('subtotal_cents');
-                $invoice->tax_total_cents = $invoice->getOriginal('tax_total_cents');
-                $invoice->discount_total_cents = $invoice->getOriginal('discount_total_cents');
-                $invoice->total_cents = $invoice->getOriginal('total_cents');
-                $invoice->currency = $invoice->getOriginal('currency');
-                $invoice->snapshot = $invoice->getOriginal('snapshot');
+            if (!$alreadyIssued && $invoice->getOriginal('locked_at') === null) {
+                return;
+            }
+            foreach (self::LOCKED_ATTRIBUTES as $attr) {
+                if ($invoice->isDirty($attr)) {
+                    throw new InvoiceLockedException('Cannot modify issued invoice: ' . $attr . ' is immutable.');
+                }
+            }
+            foreach (self::LOCKED_ATTRIBUTES as $attr) {
+                $invoice->setAttribute($attr, $invoice->getOriginal($attr));
             }
         });
     }

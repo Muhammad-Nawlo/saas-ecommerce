@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\ReconcileFinancialDataJob;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -16,3 +17,6 @@ Schedule::command('audit:prune')->daily();
 
 // Production: prune tenant audit logs, inventory movements, Stripe events per config('retention.*').
 Schedule::command('retention:prune')->daily()->at('02:00');
+
+// Financial reconciliation: detect ledger/order/invoice/payment inconsistencies per tenant (detection only).
+Schedule::job(new ReconcileFinancialDataJob())->daily()->at('03:00');

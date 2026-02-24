@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models\Financial;
 
+use App\Modules\Shared\Domain\Exceptions\FinancialOrderLockedException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -118,28 +119,32 @@ class FinancialOrder extends Model
         return $this->status === self::STATUS_DRAFT;
     }
 
+    private const LOCKED_ATTRIBUTES = [
+        'subtotal_cents', 'tax_total_cents', 'discount_total_cents', 'total_cents', 'currency',
+        'base_currency', 'display_currency', 'exchange_rate_snapshot',
+        'subtotal_base_cents', 'subtotal_display_cents', 'tax_base_cents', 'tax_display_cents',
+        'total_base_cents', 'total_display_cents', 'snapshot',
+    ];
+
     /**
      * Guard: block modification of financial fields when order is no longer draft.
+     * Throws FinancialOrderLockedException on mutation attempt; then reverts to prevent persistence.
      */
     protected static function booted(): void
     {
         static::updating(function (FinancialOrder $order): void {
-            if ($order->getOriginal('status') !== self::STATUS_DRAFT) {
-                $order->subtotal_cents = $order->getOriginal('subtotal_cents');
-                $order->tax_total_cents = $order->getOriginal('tax_total_cents');
-                $order->discount_total_cents = $order->getOriginal('discount_total_cents');
-                $order->total_cents = $order->getOriginal('total_cents');
-                $order->currency = $order->getOriginal('currency');
-                $order->base_currency = $order->getOriginal('base_currency');
-                $order->display_currency = $order->getOriginal('display_currency');
-                $order->exchange_rate_snapshot = $order->getOriginal('exchange_rate_snapshot');
-                $order->subtotal_base_cents = $order->getOriginal('subtotal_base_cents');
-                $order->subtotal_display_cents = $order->getOriginal('subtotal_display_cents');
-                $order->tax_base_cents = $order->getOriginal('tax_base_cents');
-                $order->tax_display_cents = $order->getOriginal('tax_display_cents');
-                $order->total_base_cents = $order->getOriginal('total_base_cents');
-                $order->total_display_cents = $order->getOriginal('total_display_cents');
-                $order->snapshot = $order->getOriginal('snapshot');
+            if ($order->getOriginal('status') === self::STATUS_DRAFT) {
+                return;
+            }
+            foreach (self::LOCKED_ATTRIBUTES as $attr) {
+                if ($order->isDirty($attr)) {
+                    throw new FinancialOrderLockedException(
+                        'Cannot modify financial order after lock: ' . $attr . ' is immutable.'
+                    );
+                }
+            }
+            foreach (self::LOCKED_ATTRIBUTES as $attr) {
+                $order->setAttribute($attr, $order->getOriginal($attr));
             }
         });
     }

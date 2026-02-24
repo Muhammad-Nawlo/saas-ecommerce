@@ -170,7 +170,7 @@ test('currency mismatch throws CurrencyMismatchException', function (): void {
     $a->add($b);
 })->throws(CurrencyMismatchException::class)->group('financial_integrity');
 
-test('financial order immutable after lock: financial fields not updated', function (): void {
+test('financial order immutable after lock: mutation throws FinancialOrderLockedException', function (): void {
     $tenant = Tenant::create(['name' => 'Immutable Test', 'data' => []]);
     $tenant->run(function (): void {
         Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
@@ -191,7 +191,7 @@ test('financial order immutable after lock: financial fields not updated', funct
 
     $order->subtotal_cents = 9999;
     $order->total_cents = 9999;
-    $order->save();
+    expect(fn () => $order->save())->toThrow(\App\Modules\Shared\Domain\Exceptions\FinancialOrderLockedException::class);
 
     $order->refresh();
     expect($order->subtotal_cents)->toBe(10000);
