@@ -1,0 +1,70 @@
+app/Landlord/Billing/
+├── Application/
+│   ├── Commands/
+│   │   ├── ActivatePlanCommand.php
+│   │   ├── CancelSubscriptionCommand.php
+│   │   ├── CreatePlanCommand.php
+│   │   ├── DeactivatePlanCommand.php
+│   │   ├── SubscribeTenantCommand.php
+│   │   └── SyncStripeSubscriptionCommand.php
+│   ├── DTOs/
+│   │   ├── PlanDTO.php
+│   │   └── SubscriptionDTO.php
+│   ├── Handlers/
+│   │   ├── ActivatePlanHandler.php
+│   │   ├── CancelSubscriptionHandler.php
+│   │   ├── CreatePlanHandler.php
+│   │   ├── DeactivatePlanHandler.php
+│   │   ├── SubscribeTenantHandler.php
+│   │   └── SyncStripeSubscriptionHandler.php
+│   └── Services/
+│       └── BillingService.php
+├── Domain/
+│   ├── Contracts/
+│   │   └── StripeBillingGateway.php
+│   ├── Entities/
+│   │   ├── Plan.php
+│   │   └── Subscription.php
+│   ├── Events/
+│   │   ├── PlanActivated.php
+│   │   ├── PlanCreated.php
+│   │   ├── PlanDeactivated.php
+│   │   ├── SubscriptionActivated.php
+│   │   ├── SubscriptionCancelled.php
+│   │   ├── SubscriptionCreated.php
+│   │   └── SubscriptionPastDue.php
+│   ├── Repositories/
+│   │   ├── PlanRepository.php
+│   │   └── SubscriptionRepository.php
+│   └── ValueObjects/
+│       ├── BillingInterval.php
+│       ├── PlanId.php
+│       ├── StripeCustomerId.php
+│       ├── StripeSubscriptionId.php
+│       ├── SubscriptionId.php
+│       └── SubscriptionStatus.php
+├── Infrastructure/
+│   ├── Gateways/
+│   │   └── StripeBillingGatewayImplementation.php
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── BillingWebhookController.php
+│   │   │   ├── PlanController.php
+│   │   │   └── SubscriptionController.php
+│   │   ├── Requests/
+│   │   │   ├── CancelSubscriptionRequest.php
+│   │   │   ├── CreatePlanRequest.php
+│   │   │   └── SubscribeTenantRequest.php
+│   │   └── Resources/
+│   │       ├── PlanResource.php
+│   │       └── SubscriptionResource.php
+│   └── Persistence/
+│       ├── EloquentPlanRepository.php
+│       ├── EloquentSubscriptionRepository.php
+│       ├── PlanModel.php
+│       └── SubscriptionModel.php
+└── Providers/
+    └── BillingServiceProvider.php
+
+Routes: routes/api/landlord/billing.php (mounted under /api/landlord)
+Migrations: database/migrations/2026_02_24_100000_create_plans_table.php, 2026_02_24_100001_create_subscriptions_table.php

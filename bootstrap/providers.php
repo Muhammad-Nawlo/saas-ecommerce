@@ -1,5 +1,6 @@
 <?php
 
+use App\Landlord\Billing\Providers\BillingServiceProvider;
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Cart\Providers\CartServiceProvider;
 use App\Modules\Checkout\Providers\CheckoutServiceProvider;
@@ -13,6 +14,9 @@ return [
     \App\Providers\Filament\TenantPanelProvider::class,
     App\Providers\TenancyServiceProvider::class,
 
+
+    // Landlord
+    BillingServiceProvider::class,
 
     //SAAS Providers
     CatalogServiceProvider::class,

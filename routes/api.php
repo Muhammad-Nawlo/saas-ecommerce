@@ -7,6 +7,10 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::prefix('landlord')->group(function (): void {
+    require __DIR__ . '/api/landlord/billing.php';
+});
+
 Route::prefix('v1')->group(function (): void {
     require __DIR__ . '/api/v1/catalog.php';
     require __DIR__ . '/api/v1/checkout.php';
