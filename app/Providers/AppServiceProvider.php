@@ -53,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('api', fn () => Limit::perMinute(60)->by(request()->user()?->id ?: request()->ip()));
         RateLimiter::for('customer-register', fn () => Limit::perMinute(5)->by(request()->ip()));
         RateLimiter::for('customer-login', fn () => Limit::perMinute(5)->by(request()->ip()));
         RateLimiter::for('customer-forgot-password', fn () => Limit::perMinute(3)->by(request()->ip()));

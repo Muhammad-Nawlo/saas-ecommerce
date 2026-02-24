@@ -6,6 +6,7 @@ namespace App\Services\Financial;
 
 use App\Events\Financial\OrderLocked;
 use App\Models\Financial\FinancialOrder;
+use App\Services\Currency\OrderCurrencySnapshotService;
 use App\Models\Financial\FinancialOrderItem;
 use App\Models\Financial\FinancialOrderTaxLine;
 use App\Models\Financial\TaxRate;
@@ -15,11 +16,13 @@ use InvalidArgumentException;
 /**
  * Locks an order: computes totals, snapshots items and tax, sets locked_at.
  * After lock the order is immutable. Call when transitioning draft → pending.
+ * Also fills currency snapshot (base/display amounts) when multi-currency is used.
  */
 final class OrderLockService
 {
     public function __construct(
         private TaxCalculator $taxCalculator,
+        private OrderCurrencySnapshotService $currencySnapshotService,
     ) {}
 
     public function lock(FinancialOrder $order, ?string $countryCode = null, ?string $regionCode = null): void
@@ -64,6 +67,7 @@ final class OrderLockService
             }
 
             $order->snapshot = $this->buildSnapshot($order, $result);
+            $this->currencySnapshotService->fillSnapshot($order);
             $order->save();
         });
 

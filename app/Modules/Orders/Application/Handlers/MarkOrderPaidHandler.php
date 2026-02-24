@@ -26,6 +26,9 @@ final readonly class MarkOrderPaidHandler
             if ($order === null) {
                 throw new DomainException('Order not found');
             }
+            if ($order->status()->value() === 'paid') {
+                return;
+            }
             $order->markAsPaid();
             $this->orderRepository->save($order);
         });

@@ -29,6 +29,10 @@ class EventServiceProvider extends BaseEventServiceProvider
 
         Event::listen(
             \App\Modules\Payments\Domain\Events\PaymentSucceeded::class,
+            \App\Listeners\Financial\SyncFinancialOrderOnPaymentSucceededListener::class
+        );
+        Event::listen(
+            \App\Modules\Payments\Domain\Events\PaymentSucceeded::class,
             OrderPaidListener::class
         );
         Event::listen(

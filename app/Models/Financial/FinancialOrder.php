@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Financial order. Immutable when locked_at is set.
  *
  * @property string $id
+ * @property string|null $operational_order_id
  * @property string|null $tenant_id
  * @property string|null $property_id
  * @property string $order_number
@@ -47,6 +48,7 @@ class FinancialOrder extends Model
     public const STATUS_REFUNDED = 'refunded';
 
     protected $fillable = [
+        'operational_order_id',
         'tenant_id',
         'property_id',
         'order_number',
