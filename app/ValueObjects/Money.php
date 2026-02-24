@@ -57,6 +57,22 @@ final readonly class Money
         return number_format($this->amount / 100, 2) . ' ' . $this->currency;
     }
 
+    /**
+     * Convert to target currency using a given rate. For full conversion with rounding strategy use CurrencyConversionService.
+     * Never mix currencies in arithmetic without explicit conversion.
+     */
+    public function convertWithRate(float $rate, string $targetCurrency): self
+    {
+        $targetCurrency = strtoupper(trim($targetCurrency));
+        if (strlen($targetCurrency) !== 3) {
+            throw new InvalidArgumentException('Currency must be a 3-letter ISO 4217 code.');
+        }
+        if ($rate <= 0) {
+            throw new InvalidArgumentException('Rate must be positive.');
+        }
+        return new self((int) round($this->amount * $rate), $targetCurrency);
+    }
+
     private function assertSameCurrency(Money $other): void
     {
         if ($this->currency !== $other->currency) {

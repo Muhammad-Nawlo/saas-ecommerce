@@ -24,7 +24,9 @@ use App\Observers\TenantAuditObserver;
 use App\Observers\UserAuditObserver;
 use App\Models\Customer\Customer;
 use App\Models\Inventory\InventoryLocation;
+use App\Models\Currency\Currency;
 use App\Models\Invoice\Invoice;
+use App\Policies\CurrencyPolicy;
 use App\Policies\CustomerIdentityPolicy;
 use App\Policies\InventoryLocationPolicy;
 use App\Policies\CustomerPolicy;
@@ -41,7 +43,12 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->bind(
+            \App\Contracts\Currency\RateProviderInterface::class,
+            fn () => config('currency.rate_provider') === 'api'
+                ? new \App\Services\Currency\ApiRateProvider()
+                : new \App\Services\Currency\ManualRateProvider(),
+        );
     }
 
     public function boot(): void
@@ -55,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CustomerSummaryModel::class, CustomerPolicy::class);
         Gate::policy(Customer::class, CustomerIdentityPolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Currency::class, CurrencyPolicy::class);
         Gate::policy(InventoryLocation::class, InventoryLocationPolicy::class);
         Gate::policy(StockItemModel::class, InventoryPolicy::class);
 

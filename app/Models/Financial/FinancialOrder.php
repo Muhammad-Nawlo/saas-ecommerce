@@ -20,6 +20,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $tax_total_cents
  * @property int $total_cents
  * @property string $currency
+ * @property string|null $base_currency
+ * @property string|null $display_currency
+ * @property array|null $exchange_rate_snapshot
+ * @property int|null $subtotal_base_cents
+ * @property int|null $subtotal_display_cents
+ * @property int|null $tax_base_cents
+ * @property int|null $tax_display_cents
+ * @property int|null $total_base_cents
+ * @property int|null $total_display_cents
  * @property string $status
  * @property array|null $snapshot
  * @property \Illuminate\Support\Carbon|null $locked_at
@@ -45,6 +54,15 @@ class FinancialOrder extends Model
         'tax_total_cents',
         'total_cents',
         'currency',
+        'base_currency',
+        'display_currency',
+        'exchange_rate_snapshot',
+        'subtotal_base_cents',
+        'subtotal_display_cents',
+        'tax_base_cents',
+        'tax_display_cents',
+        'total_base_cents',
+        'total_display_cents',
         'status',
         'snapshot',
         'locked_at',
@@ -57,6 +75,13 @@ class FinancialOrder extends Model
             'subtotal_cents' => 'integer',
             'tax_total_cents' => 'integer',
             'total_cents' => 'integer',
+            'exchange_rate_snapshot' => 'array',
+            'subtotal_base_cents' => 'integer',
+            'subtotal_display_cents' => 'integer',
+            'tax_base_cents' => 'integer',
+            'tax_display_cents' => 'integer',
+            'total_base_cents' => 'integer',
+            'total_display_cents' => 'integer',
             'snapshot' => 'array',
             'locked_at' => 'datetime',
             'paid_at' => 'datetime',
