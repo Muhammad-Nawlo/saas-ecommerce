@@ -17,6 +17,9 @@ class EventServiceProvider extends BaseEventServiceProvider
         SubscriptionCancelled::class => [
             SubscriptionCancelledListener::class,
         ],
+        \App\Events\Financial\OrderPaid::class => [
+            \App\Listeners\Invoice\CreateInvoiceOnOrderPaidListener::class,
+        ],
     ];
 
     public function boot(): void

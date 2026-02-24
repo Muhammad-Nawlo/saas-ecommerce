@@ -24,6 +24,8 @@ final class TenantPermissions
     public const EDIT_INVENTORY = 'edit inventory';
 
     public const MANAGE_BILLING = 'manage billing';
+    public const VIEW_INVOICES = 'view invoices';
+    public const MANAGE_INVOICES = 'manage invoices';
     public const MANAGE_DOMAIN = 'manage domain';
     public const MANAGE_ROLES = 'manage roles';
     public const MANAGE_USERS = 'manage users';
@@ -42,6 +44,8 @@ final class TenantPermissions
             self::VIEW_INVENTORY,
             self::EDIT_INVENTORY,
             self::MANAGE_BILLING,
+            self::VIEW_INVOICES,
+            self::MANAGE_INVOICES,
             self::MANAGE_DOMAIN,
             self::MANAGE_ROLES,
             self::MANAGE_USERS,

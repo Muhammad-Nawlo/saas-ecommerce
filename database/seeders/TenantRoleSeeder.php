@@ -46,6 +46,7 @@ class TenantRoleSeeder extends Seeder
             TenantPermissions::VIEW_CUSTOMERS,
             TenantPermissions::VIEW_INVENTORY,
             TenantPermissions::EDIT_INVENTORY,
+            TenantPermissions::VIEW_INVOICES,
         ]);
 
         $viewer = Role::firstOrCreate(['name' => TenantRole::Viewer->value, 'guard_name' => $guard]);
@@ -54,6 +55,7 @@ class TenantRoleSeeder extends Seeder
             TenantPermissions::VIEW_ORDERS,
             TenantPermissions::VIEW_CUSTOMERS,
             TenantPermissions::VIEW_INVENTORY,
+            TenantPermissions::VIEW_INVOICES,
         ]);
     }
 }
