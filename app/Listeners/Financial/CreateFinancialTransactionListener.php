@@ -42,6 +42,14 @@ class CreateFinancialTransactionListener
     public function handleOrderRefunded(OrderRefunded $event): void
     {
         $order = $event->order;
+        $exists = FinancialTransaction::where('order_id', $order->id)
+            ->where('type', FinancialTransaction::TYPE_REFUND)
+            ->where('amount_cents', $event->amountCents)
+            ->where('status', FinancialTransaction::STATUS_COMPLETED)
+            ->exists();
+        if ($exists) {
+            return;
+        }
         DB::transaction(function () use ($order, $event): void {
             FinancialTransaction::create([
                 'tenant_id' => $order->tenant_id,

@@ -12,6 +12,7 @@ use App\Services\Financial\FinancialOrderSyncService;
 use App\Services\Financial\OrderLockService;
 use App\Services\Financial\OrderPaymentService;
 use App\Services\Financial\PaymentSnapshotService;
+use App\Services\Promotion\RecordPromotionUsageService;
 use App\Models\Financial\FinancialOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +31,7 @@ final class SyncFinancialOrderOnPaymentSucceededListener
         private OrderLockService $lockService,
         private OrderPaymentService $paymentService,
         private PaymentSnapshotService $paymentSnapshotService,
+        private RecordPromotionUsageService $recordPromotionUsage,
     ) {
     }
 
@@ -58,7 +60,7 @@ final class SyncFinancialOrderOnPaymentSucceededListener
             }
 
             if (!$financialOrder->isLocked()) {
-                $this->lockService->lock($financialOrder, null, null);
+                $this->lockService->lock($financialOrder, null, null, $order->applied_promotions ?? []);
                 $financialOrder->refresh();
             }
 
@@ -68,6 +70,15 @@ final class SyncFinancialOrderOnPaymentSucceededListener
 
             if ($payment !== null) {
                 $this->paymentSnapshotService->fillSnapshot($payment, $tenantId);
+            }
+            $applied = $order->applied_promotions ?? [];
+            if ($applied !== []) {
+                $this->recordPromotionUsage->recordForOrder(
+                    $order->id,
+                    $order->customer_id,
+                    $order->customer_email,
+                    $applied
+                );
             }
             Log::info('Payment success: financial order synced and paid', [
                 'tenant_id' => $tenantId,

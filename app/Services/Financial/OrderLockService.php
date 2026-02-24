@@ -26,7 +26,10 @@ final class OrderLockService
         private OrderCurrencySnapshotService $currencySnapshotService,
     ) {}
 
-    public function lock(FinancialOrder $order, ?string $countryCode = null, ?string $regionCode = null): void
+    /**
+     * @param array<int, array{id: string, name: string, type: string, discount_cents: int}>|null $appliedPromotions Snapshot from operational order; immutable after lock
+     */
+    public function lock(FinancialOrder $order, ?string $countryCode = null, ?string $regionCode = null, ?array $appliedPromotions = null): void
     {
         if ($order->isLocked()) {
             throw new InvalidArgumentException('Order is already locked.');
@@ -43,10 +46,11 @@ final class OrderLockService
         $applicableRates = $this->getApplicableRates($order, $countryCode, $regionCode);
         $result = $this->taxCalculator->calculate($order, $applicableRates);
 
-        DB::transaction(function () use ($order, $result, $applicableRates): void {
+        $discountCents = (int) ($order->discount_total_cents ?? 0);
+        DB::transaction(function () use ($order, $result, $applicableRates, $discountCents, $appliedPromotions): void {
             $order->subtotal_cents = $result->subtotal_cents;
             $order->tax_total_cents = $result->tax_total_cents;
-            $order->total_cents = $result->total_cents;
+            $order->total_cents = $result->subtotal_cents - $discountCents + $result->tax_total_cents;
             $order->locked_at = now();
             $order->status = FinancialOrder::STATUS_PENDING;
                 foreach ($order->items as $item) {
@@ -67,7 +71,7 @@ final class OrderLockService
                 ]);
             }
 
-            $order->snapshot = $this->buildSnapshot($order, $result);
+            $order->snapshot = $this->buildSnapshot($order, $result, $appliedPromotions ?? []);
             $this->currencySnapshotService->fillSnapshot($order);
             $order->save();
         });
@@ -110,7 +114,10 @@ final class OrderLockService
         return $tax;
     }
 
-    private function buildSnapshot(FinancialOrder $order, TaxResult $result): array
+    /**
+     * @param array<int, array{id: string, name: string, type: string, discount_cents: int}> $appliedPromotions
+     */
+    private function buildSnapshot(FinancialOrder $order, TaxResult $result, array $appliedPromotions = []): array
     {
         $items = [];
         foreach ($order->items as $item) {
@@ -125,12 +132,15 @@ final class OrderLockService
                 'metadata' => $item->metadata,
             ];
         }
+        $discountCents = (int) ($order->discount_total_cents ?? 0);
         return [
             'locked_at' => $order->locked_at?->toIso8601String(),
             'currency' => $order->currency,
             'subtotal_cents' => $result->subtotal_cents,
+            'discount_total_cents' => $discountCents,
+            'applied_promotions' => $appliedPromotions,
             'tax_total_cents' => $result->tax_total_cents,
-            'total_cents' => $result->total_cents,
+            'total_cents' => $result->subtotal_cents - $discountCents + $result->tax_total_cents,
             'tax_lines' => $result->taxLines,
             'items' => $items,
         ];

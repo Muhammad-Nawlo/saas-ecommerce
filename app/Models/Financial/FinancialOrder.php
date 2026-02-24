@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $order_number
  * @property int $subtotal_cents
  * @property int $tax_total_cents
+ * @property int $discount_total_cents
  * @property int $total_cents
  * @property string $currency
  * @property string|null $base_currency
@@ -54,6 +55,7 @@ class FinancialOrder extends Model
         'order_number',
         'subtotal_cents',
         'tax_total_cents',
+        'discount_total_cents',
         'total_cents',
         'currency',
         'base_currency',
@@ -76,6 +78,7 @@ class FinancialOrder extends Model
         return [
             'subtotal_cents' => 'integer',
             'tax_total_cents' => 'integer',
+            'discount_total_cents' => 'integer',
             'total_cents' => 'integer',
             'exchange_rate_snapshot' => 'array',
             'subtotal_base_cents' => 'integer',
@@ -124,6 +127,7 @@ class FinancialOrder extends Model
             if ($order->getOriginal('status') !== self::STATUS_DRAFT) {
                 $order->subtotal_cents = $order->getOriginal('subtotal_cents');
                 $order->tax_total_cents = $order->getOriginal('tax_total_cents');
+                $order->discount_total_cents = $order->getOriginal('discount_total_cents');
                 $order->total_cents = $order->getOriginal('total_cents');
                 $order->currency = $order->getOriginal('currency');
                 $order->base_currency = $order->getOriginal('base_currency');

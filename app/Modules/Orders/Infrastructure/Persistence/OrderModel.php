@@ -27,11 +27,15 @@ final class OrderModel extends Model
         'status',
         'total_amount',
         'currency',
+        'discount_total_cents',
+        'applied_promotions',
         'internal_notes',
     ];
 
     protected $casts = [
         'total_amount' => 'integer',
+        'discount_total_cents' => 'integer',
+        'applied_promotions' => 'array',
     ];
 
     public function scopeForTenant(Builder $query, string $tenantId): Builder

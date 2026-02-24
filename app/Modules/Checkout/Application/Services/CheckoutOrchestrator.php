@@ -16,6 +16,8 @@ use App\Modules\Orders\Infrastructure\Persistence\OrderModel;
 use App\Modules\Shared\Domain\ValueObjects\Money;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
 use App\Services\Inventory\InventoryAllocationService;
+use App\Services\Promotion\PromotionEvaluationService;
+use App\Services\Promotion\PromotionResolverService;
 use Throwable;
 
 final readonly class CheckoutOrchestrator
@@ -27,6 +29,8 @@ final readonly class CheckoutOrchestrator
         private PaymentService $paymentService,
         private TransactionManager $transactionManager,
         private InventoryAllocationService $allocationService,
+        private PromotionResolverService $promotionResolver,
+        private PromotionEvaluationService $promotionEvaluator,
     ) {
     }
 
@@ -74,7 +78,39 @@ final readonly class CheckoutOrchestrator
                     }
                 }
 
-                $amount = Money::fromMinorUnits($cart->totalAmountMinorUnits, $cart->currency);
+                $subtotalCents = $cart->totalAmountMinorUnits;
+                $itemsForEval = [];
+                foreach ($cart->items as $item) {
+                    $itemsForEval[] = [
+                        'quantity' => $item->quantity,
+                        'unit_price_cents' => $item->unitPriceMinorUnits,
+                    ];
+                }
+                $couponCodes = $command->couponCodes ?? [];
+                $candidates = $this->promotionResolver->getCandidates(
+                    $cart->tenantId,
+                    $couponCodes,
+                    $command->customerId,
+                    $cart->customerEmail ?? ''
+                );
+                $promoResult = $this->promotionEvaluator->evaluate(
+                    $subtotalCents,
+                    $itemsForEval,
+                    $candidates,
+                    $cart->currency
+                );
+                $discountCents = $promoResult->totalDiscountCents;
+                $amountToCharge = $subtotalCents - $discountCents;
+
+                $order = OrderModel::find($orderId);
+                if ($order !== null && ($discountCents > 0 || $promoResult->appliedPromotions !== [])) {
+                    $order->discount_total_cents = $discountCents;
+                    $order->total_amount = $amountToCharge;
+                    $order->applied_promotions = $promoResult->appliedPromotionsSnapshot();
+                    $order->save();
+                }
+
+                $amount = Money::fromMinorUnits($amountToCharge, $cart->currency);
                 $paymentResult = $this->paymentService->createPayment(
                     $orderId,
                     $amount,
@@ -87,7 +123,7 @@ final readonly class CheckoutOrchestrator
                     orderId: $orderId,
                     paymentId: $paymentResult['payment_id'],
                     clientSecret: $paymentResult['client_secret'],
-                    amount: $cart->totalAmountMinorUnits,
+                    amount: $amountToCharge,
                     currency: $cart->currency
                 );
             });

@@ -7,16 +7,22 @@ namespace App\Services\Financial;
 use App\Events\Financial\OrderRefunded;
 use App\Models\Financial\FinancialOrder;
 use App\Models\Financial\FinancialTransaction;
+use App\Models\Refund\Refund;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
- * Refund an order. Ensures refund cannot exceed paid amount; creates transaction and dispatches event.
+ * Refund an order. Validates refundable amount, prevents over-refund, creates Refund record and
+ * financial transaction, dispatches OrderRefunded (ledger reversal and invoice adjustment in listeners).
  */
 final class RefundService
 {
-    public function refund(FinancialOrder $order, int $amountCents, ?string $providerReference = null): void
-    {
+    public function refund(
+        FinancialOrder $order,
+        int $amountCents,
+        ?string $providerReference = null,
+        ?string $reason = null
+    ): Refund {
         if ($amountCents <= 0) {
             throw new InvalidArgumentException('Refund amount must be positive.');
         }
@@ -37,11 +43,34 @@ final class RefundService
             );
         }
 
-        DB::transaction(function () use ($order, $amountCents, $providerReference): void {
+        return DB::transaction(function () use ($order, $amountCents, $providerReference, $reason): Refund {
+            $refund = Refund::create([
+                'tenant_id' => $order->tenant_id,
+                'financial_order_id' => $order->id,
+                'amount_cents' => $amountCents,
+                'currency' => $order->currency,
+                'reason' => $reason,
+                'status' => Refund::STATUS_PENDING,
+                'payment_reference' => $providerReference,
+            ]);
+
+            $tx = FinancialTransaction::create([
+                'tenant_id' => $order->tenant_id,
+                'order_id' => $order->id,
+                'type' => FinancialTransaction::TYPE_REFUND,
+                'amount_cents' => $amountCents,
+                'currency' => $order->currency,
+                'provider_reference' => $providerReference,
+                'status' => FinancialTransaction::STATUS_COMPLETED,
+                'meta' => ['event' => 'order_refunded', 'refund_id' => $refund->id],
+            ]);
+
+            $refund->update(['status' => Refund::STATUS_COMPLETED, 'financial_transaction_id' => $tx->id]);
             $order->status = FinancialOrder::STATUS_REFUNDED;
             $order->save();
-        });
 
-        event(new OrderRefunded($order, $amountCents, $providerReference));
+            event(new OrderRefunded($order, $amountCents, $providerReference));
+            return $refund->fresh();
+        });
     }
 }

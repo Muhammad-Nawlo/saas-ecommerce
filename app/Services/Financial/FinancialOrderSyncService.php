@@ -30,8 +30,9 @@ final class FinancialOrderSyncService
             foreach ($order->items as $item) {
                 $subtotalCents += (int) $item->total_price_amount;
             }
+            $discountTotalCents = (int) ($order->discount_total_cents ?? 0);
             $totalCents = (int) $order->total_amount;
-            $taxTotalCents = max(0, $totalCents - $subtotalCents);
+            $taxTotalCents = max(0, $totalCents - ($subtotalCents - $discountTotalCents));
 
             $financialOrder = FinancialOrder::create([
                 'operational_order_id' => $order->id,
@@ -40,6 +41,7 @@ final class FinancialOrderSyncService
                 'currency' => $order->currency,
                 'subtotal_cents' => $subtotalCents,
                 'tax_total_cents' => $taxTotalCents,
+                'discount_total_cents' => $discountTotalCents,
                 'total_cents' => $totalCents,
                 'status' => FinancialOrder::STATUS_DRAFT,
             ]);

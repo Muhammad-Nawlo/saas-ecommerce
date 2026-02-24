@@ -19,6 +19,7 @@ class EventServiceProvider extends BaseEventServiceProvider
         ],
         \App\Events\Financial\OrderPaid::class => [
             \App\Listeners\Invoice\CreateInvoiceOnOrderPaidListener::class,
+            \App\Listeners\Financial\CreateLedgerTransactionOnOrderPaidListener::class,
         ],
     ];
 
@@ -26,6 +27,10 @@ class EventServiceProvider extends BaseEventServiceProvider
     {
         Event::subscribe(\App\Listeners\Financial\CreateFinancialTransactionListener::class);
         Event::subscribe(\App\Listeners\Financial\AuditLogOrderStatusListener::class);
+        Event::listen(
+            \App\Events\Financial\OrderRefunded::class,
+            \App\Listeners\Financial\CreateLedgerReversalOnOrderRefundedListener::class
+        );
 
         Event::listen(
             \App\Modules\Payments\Domain\Events\PaymentSucceeded::class,
