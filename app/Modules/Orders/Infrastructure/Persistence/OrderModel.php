@@ -7,9 +7,11 @@ namespace App\Modules\Orders\Infrastructure\Persistence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class OrderModel extends Model
 {
+    use SoftDeletes;
     protected $table = 'orders';
 
     protected $keyType = 'string';

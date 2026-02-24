@@ -13,9 +13,11 @@ use App\Modules\Shared\Domain\ValueObjects\Slug;
 use App\Modules\Shared\Domain\ValueObjects\TenantId;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class ProductModel extends Model
 {
+    use SoftDeletes;
     protected $table = 'products';
 
     protected $keyType = 'string';

@@ -20,6 +20,6 @@ class CatalogServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Event::listen(ProductCreated::class, ProductCreatedListener::class);
     }
 }

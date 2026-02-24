@@ -10,6 +10,7 @@ use App\Modules\Payments\Providers\PaymentsServiceProvider;
 
 return [
     App\Providers\AppServiceProvider::class,
+    App\Providers\EventServiceProvider::class,
     \App\Providers\Filament\LandlordPanelProvider::class,
     \App\Providers\Filament\TenantPanelProvider::class,
     App\Providers\TenancyServiceProvider::class,

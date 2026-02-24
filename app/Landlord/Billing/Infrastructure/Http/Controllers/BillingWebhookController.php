@@ -6,6 +6,7 @@ namespace App\Landlord\Billing\Infrastructure\Http\Controllers;
 
 use App\Landlord\Billing\Application\Commands\SyncStripeSubscriptionCommand;
 use App\Landlord\Billing\Application\Handlers\SyncStripeSubscriptionHandler;
+use App\Landlord\Models\StripeEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -112,11 +113,18 @@ final class BillingWebhookController
 
     private function alreadyProcessed(string $eventId): bool
     {
-        return Cache::has(self::IDEMPOTENCY_PREFIX . $eventId);
+        if (Cache::has(self::IDEMPOTENCY_PREFIX . $eventId)) {
+            return true;
+        }
+        return StripeEvent::where('event_id', $eventId)->exists();
     }
 
     private function markProcessed(string $eventId): void
     {
         Cache::put(self::IDEMPOTENCY_PREFIX . $eventId, true, self::IDEMPOTENCY_TTL_SECONDS);
+        StripeEvent::create([
+            'event_id' => $eventId,
+            'processed_at' => now(),
+        ]);
     }
 }

@@ -7,9 +7,11 @@ namespace App\Modules\Cart\Infrastructure\Persistence;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 final class CartModel extends Model
 {
+    use SoftDeletes;
     protected $table = 'carts';
 
     protected $keyType = 'string';
