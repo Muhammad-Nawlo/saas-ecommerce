@@ -1,0 +1,62 @@
+app/Modules/Orders/
+├── Application/
+│   ├── Commands/
+│   │   ├── AddOrderItemCommand.php
+│   │   ├── CancelOrderCommand.php
+│   │   ├── ConfirmOrderCommand.php
+│   │   ├── CreateOrderCommand.php
+│   │   ├── MarkOrderPaidCommand.php
+│   │   └── ShipOrderCommand.php
+│   ├── DTOs/
+│   │   ├── OrderDTO.php
+│   │   └── OrderItemDTO.php
+│   ├── Handlers/
+│   │   ├── AddOrderItemHandler.php
+│   │   ├── CancelOrderHandler.php
+│   │   ├── ConfirmOrderHandler.php
+│   │   ├── CreateOrderHandler.php
+│   │   ├── MarkOrderPaidHandler.php
+│   │   └── ShipOrderHandler.php
+│   └── Services/
+│       └── InventoryService.php
+├── Domain/
+│   ├── Entities/
+│   │   ├── Order.php
+│   │   └── OrderItem.php
+│   ├── Events/
+│   │   ├── OrderCancelled.php
+│   │   ├── OrderConfirmed.php
+│   │   ├── OrderCreated.php
+│   │   ├── OrderItemAdded.php
+│   │   ├── OrderPaid.php
+│   │   └── OrderShipped.php
+│   ├── Repositories/
+│   │   └── OrderRepository.php
+│   └── ValueObjects/
+│       ├── CustomerEmail.php
+│       ├── OrderId.php
+│       ├── OrderItemId.php
+│       ├── OrderStatus.php
+│       ├── ProductId.php
+│       └── Quantity.php
+├── Infrastructure/
+│   ├── Http/
+│   │   └── Api/
+│   │       ├── Controllers/
+│   │       │   └── OrderController.php
+│   │       ├── Requests/
+│   │       │   ├── AddOrderItemRequest.php
+│   │       │   └── CreateOrderRequest.php
+│   │       └── Resources/
+│   │           └── OrderResource.php
+│   ├── Persistence/
+│   │   ├── EloquentOrderRepository.php
+│   │   ├── OrderItemModel.php
+│   │   └── OrderModel.php
+│   └── Services/
+│       └── LaravelInventoryService.php
+└── Providers/
+    └── OrdersServiceProvider.php
+
+Routes: routes/api/v1/orders.php
+Tenant migrations: database/migrations/tenant/2026_02_24_000002_create_orders_table.php, 2026_02_24_000003_create_order_items_table.php

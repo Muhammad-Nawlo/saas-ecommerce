@@ -2,6 +2,7 @@
 
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Inventory\Providers\InventoryServiceProvider;
+use App\Modules\Orders\Providers\OrdersServiceProvider;
 
 return [
     App\Providers\AppServiceProvider::class,
@@ -13,4 +14,5 @@ return [
     //SAAS Providers
     CatalogServiceProvider::class,
     InventoryServiceProvider::class,
+    OrdersServiceProvider::class,
 ];
