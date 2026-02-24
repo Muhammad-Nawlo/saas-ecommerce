@@ -1,0 +1,57 @@
+app/Modules/Payments/
+├── Application/
+│   ├── Commands/
+│   │   ├── CancelPaymentCommand.php
+│   │   ├── ConfirmPaymentCommand.php
+│   │   ├── CreatePaymentCommand.php
+│   │   └── RefundPaymentCommand.php
+│   ├── DTOs/
+│   │   └── PaymentDTO.php
+│   ├── Handlers/
+│   │   ├── CancelPaymentHandler.php
+│   │   ├── ConfirmPaymentHandler.php
+│   │   ├── CreatePaymentHandler.php
+│   │   └── RefundPaymentHandler.php
+│   └── Services/
+│       ├── PaymentGatewayResolver.php
+│       └── PaymentService.php
+├── Domain/
+│   ├── Contracts/
+│   │   └── PaymentGateway.php
+│   ├── Entities/
+│   │   └── Payment.php
+│   ├── Events/
+│   │   ├── PaymentAuthorized.php
+│   │   ├── PaymentCancelled.php
+│   │   ├── PaymentCreated.php
+│   │   ├── PaymentFailed.php
+│   │   ├── PaymentRefunded.php
+│   │   └── PaymentSucceeded.php
+│   ├── Repositories/
+│   │   └── PaymentRepository.php
+│   └── ValueObjects/
+│       ├── OrderId.php
+│       ├── PaymentId.php
+│       ├── PaymentProvider.php
+│       └── PaymentStatus.php
+├── Infrastructure/
+│   ├── Gateways/
+│   │   ├── LaravelPaymentGatewayResolver.php
+│   │   └── StripePaymentGateway.php
+│   ├── Http/
+│   │   └── Api/
+│   │       ├── Controllers/
+│   │       │   └── PaymentController.php
+│   │       ├── Requests/
+│   │       │   ├── ConfirmPaymentRequest.php
+│   │       │   └── CreatePaymentRequest.php
+│   │       └── Resources/
+│   │           └── PaymentResource.php
+│   └── Persistence/
+│       ├── EloquentPaymentRepository.php
+│       └── PaymentModel.php
+└── Providers/
+    └── PaymentsServiceProvider.php
+
+Routes: routes/api/v1/payments.php
+Tenant migration: database/migrations/tenant/2026_02_24_000004_create_payments_table.php

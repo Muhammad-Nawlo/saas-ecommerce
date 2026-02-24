@@ -18,7 +18,8 @@
         "spatie/laravel-permission": "^7.2",
         "spatie/laravel-query-builder": "^6.4",
         "spatie/laravel-webhook-server": "^3.9",
-        "stancl/tenancy": "^3.9"
+        "stancl/tenancy": "^3.9",
+        "stripe/stripe-php": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

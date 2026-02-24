@@ -3,6 +3,7 @@
 use App\Modules\Catalog\Providers\CatalogServiceProvider;
 use App\Modules\Inventory\Providers\InventoryServiceProvider;
 use App\Modules\Orders\Providers\OrdersServiceProvider;
+use App\Modules\Payments\Providers\PaymentsServiceProvider;
 
 return [
     App\Providers\AppServiceProvider::class,
@@ -15,4 +16,5 @@ return [
     CatalogServiceProvider::class,
     InventoryServiceProvider::class,
     OrdersServiceProvider::class,
+    PaymentsServiceProvider::class,
 ];

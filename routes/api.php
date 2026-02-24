@@ -8,7 +8,8 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::prefix('v1')->group(function (): void {
-    require __DIR__ . '/v1/catalog.php';
-    require __DIR__ . '/v1/inventory.php';
-    require __DIR__ . '/v1/orders.php';
+    require __DIR__ . '/api/v1/catalog.php';
+    require __DIR__ . '/api/v1/inventory.php';
+    require __DIR__ . '/api/v1/orders.php';
+    require __DIR__ . '/api/v1/payments.php';
 });

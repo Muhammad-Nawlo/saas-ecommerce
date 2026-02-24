@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Orders\Providers;
 
 use App\Modules\Orders\Application\Services\InventoryService;
+use App\Modules\Orders\Application\Services\OrderApplicationService;
+use App\Modules\Orders\Application\Services\LaravelOrderApplicationService;
 use App\Modules\Orders\Domain\Repositories\OrderRepository;
 use App\Modules\Orders\Infrastructure\Persistence\EloquentOrderRepository;
 use App\Modules\Orders\Infrastructure\Services\LaravelInventoryService;
@@ -21,6 +23,10 @@ class OrdersServiceProvider extends ServiceProvider
         $this->app->bind(
             InventoryService::class,
             LaravelInventoryService::class
+        );
+        $this->app->bind(
+            OrderApplicationService::class,
+            LaravelOrderApplicationService::class
         );
     }
 
