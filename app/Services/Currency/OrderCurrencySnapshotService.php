@@ -6,7 +6,7 @@ namespace App\Services\Currency;
 
 use App\Models\Currency\Currency;
 use App\Models\Financial\FinancialOrder;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 
 /**
  * Fills order currency snapshot (base_currency, display_currency, exchange_rate_snapshot, base/display amounts).
@@ -39,15 +39,15 @@ final class OrderCurrencySnapshotService
         $order->total_display_cents = $order->total_cents;
         $order->exchange_rate_snapshot = null;
         if ($baseCurrency->id !== $displayCurrency->id) {
-            $subtotalMoney = Money::fromCents($order->subtotal_cents, $order->currency);
-            $taxMoney = Money::fromCents($order->tax_total_cents, $order->currency);
-            $totalMoney = Money::fromCents($order->total_cents, $order->currency);
+            $subtotalMoney = Money::fromMinorUnits($order->subtotal_cents, $order->currency);
+            $taxMoney = Money::fromMinorUnits($order->tax_total_cents, $order->currency);
+            $totalMoney = Money::fromMinorUnits($order->total_cents, $order->currency);
             $subResult = $this->conversionService->convertWithSnapshot($subtotalMoney, $baseCurrency);
             $taxResult = $this->conversionService->convertWithSnapshot($taxMoney, $baseCurrency);
             $totalResult = $this->conversionService->convertWithSnapshot($totalMoney, $baseCurrency);
-            $order->subtotal_base_cents = $subResult['converted']->amount;
-            $order->tax_base_cents = $taxResult['converted']->amount;
-            $order->total_base_cents = $totalResult['converted']->amount;
+            $order->subtotal_base_cents = $subResult['converted']->getMinorUnits();
+            $order->tax_base_cents = $taxResult['converted']->getMinorUnits();
+            $order->total_base_cents = $totalResult['converted']->getMinorUnits();
             $order->exchange_rate_snapshot = $totalResult['rate_snapshot'];
         } else {
             $order->exchange_rate_snapshot = [

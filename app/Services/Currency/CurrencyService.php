@@ -8,6 +8,7 @@ use App\Models\Currency\Currency;
 use App\Models\Currency\TenantCurrencySetting;
 use App\Models\Currency\TenantEnabledCurrency;
 use Illuminate\Support\Collection;
+use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use InvalidArgumentException;
 
 final class CurrencyService
@@ -78,7 +79,7 @@ final class CurrencyService
     private function ensureMultiCurrencyAllowed(string $tenantId): void
     {
         if (!function_exists('tenant_feature') || !(bool) tenant_feature('multi_currency')) {
-            throw new InvalidArgumentException('Multi-currency is not enabled for this tenant.');
+            throw FeatureNotEnabledException::forFeature('multi_currency');
         }
         $s = TenantCurrencySetting::where('tenant_id', $tenantId)->first();
         if ($s !== null && !$s->allow_multi_currency) {

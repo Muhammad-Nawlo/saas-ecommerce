@@ -10,7 +10,7 @@ use App\Models\Invoice\Invoice;
 use App\Models\Invoice\InvoiceItem;
 use App\Models\Invoice\InvoicePayment;
 use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -158,14 +158,14 @@ final class InvoiceService
         if ($invoice->status === Invoice::STATUS_VOID) {
             throw new InvalidArgumentException('Cannot apply payment to void invoice.');
         }
-        if (strtoupper($amount->currency) !== strtoupper($invoice->currency)) {
+        if (strtoupper($amount->getCurrency()) !== strtoupper($invoice->currency)) {
             throw new InvalidArgumentException('Payment currency must match invoice currency.');
         }
         $balanceCents = $invoice->balanceDueCents();
-        if ($amount->amount > $balanceCents) {
+        if ($amount->getMinorUnits() > $balanceCents) {
             throw new InvalidArgumentException('Payment cannot exceed remaining balance.');
         }
-        if ($amount->amount <= 0) {
+        if ($amount->getMinorUnits() <= 0) {
             throw new InvalidArgumentException('Payment amount must be positive.');
         }
 
@@ -173,8 +173,8 @@ final class InvoiceService
             InvoicePayment::create([
                 'invoice_id' => $invoice->id,
                 'financial_transaction_id' => $financialTransactionId,
-                'amount_cents' => $amount->amount,
-                'currency' => $amount->currency,
+                'amount_cents' => $amount->getMinorUnits(),
+                'currency' => $amount->getCurrency(),
                 'paid_at' => now(),
             ]);
             $invoice->refresh();
@@ -196,7 +196,7 @@ final class InvoiceService
             'Payment applied to invoice: ' . $invoice->invoice_number,
             $invoice,
             [
-                'amount_cents' => $amount->amount,
+                'amount_cents' => $amount->getMinorUnits(),
                 'actor_id' => auth()->id(),
                 'ip' => request()->ip(),
                 'timestamp' => now()->toIso8601String(),
@@ -215,14 +215,14 @@ final class InvoiceService
         if ($invoice->status === Invoice::STATUS_VOID) {
             throw new InvalidArgumentException('Cannot create credit note for void invoice.');
         }
-        if (strtoupper($amount->currency) !== strtoupper($invoice->currency)) {
+        if (strtoupper($amount->getCurrency()) !== strtoupper($invoice->currency)) {
             throw new InvalidArgumentException('Credit note currency must match invoice.');
         }
-        if ($amount->amount <= 0) {
+        if ($amount->getMinorUnits() <= 0) {
             throw new InvalidArgumentException('Credit note amount must be positive.');
         }
         $maxCredit = $invoice->total_cents - $invoice->totalCreditNotesCents();
-        if ($amount->amount > $maxCredit) {
+        if ($amount->getMinorUnits() > $maxCredit) {
             throw new InvalidArgumentException('Credit note cannot exceed invoice total minus existing credits.');
         }
 
@@ -236,7 +236,7 @@ final class InvoiceService
             $creditNote = CreditNote::create([
                 'invoice_id' => $invoice->id,
                 'reason' => $reason,
-                'amount_cents' => $amount->amount,
+                'amount_cents' => $amount->getMinorUnits(),
                 'currency' => $invoice->currency,
                 'issued_at' => now(),
                 'snapshot' => $snapshot,
@@ -255,7 +255,7 @@ final class InvoiceService
                 'Credit note created for invoice: ' . $invoice->invoice_number,
                 $creditNote,
                 [
-                    'amount_cents' => $amount->amount,
+                    'amount_cents' => $amount->getMinorUnits(),
                     'reason' => $reason,
                     'actor_id' => auth()->id(),
                     'ip' => request()->ip(),

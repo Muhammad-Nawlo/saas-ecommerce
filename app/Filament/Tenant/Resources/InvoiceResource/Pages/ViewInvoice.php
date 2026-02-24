@@ -7,7 +7,7 @@ namespace App\Filament\Tenant\Resources\InvoiceResource\Pages;
 use App\Filament\Tenant\Resources\InvoiceResource;
 use App\Models\Invoice\Invoice;
 use App\Services\Invoice\InvoiceService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -45,7 +45,7 @@ class ViewInvoice extends ViewRecord
                         ->label('Amount (cents)'),
                 ])
                 ->action(function (array $data): void {
-                    $amount = Money::fromCents((int) $data['amount_cents'], $this->record->currency);
+                    $amount = Money::fromMinorUnits((int) $data['amount_cents'], $this->record->currency);
                     app(InvoiceService::class)->applyPayment($this->record, $amount);
                     Notification::make()->title('Payment applied')->success()->send();
                     $this->refreshFormData(['status', 'paid_at']);
@@ -57,7 +57,7 @@ class ViewInvoice extends ViewRecord
                     Forms\Components\Textarea::make('reason')->required()->label('Reason'),
                 ])
                 ->action(function (array $data): void {
-                    $amount = Money::fromCents((int) $data['amount_cents'], $this->record->currency);
+                    $amount = Money::fromMinorUnits((int) $data['amount_cents'], $this->record->currency);
                     app(InvoiceService::class)->createCreditNote($this->record, $amount, $data['reason']);
                     Notification::make()->title('Credit note created')->success()->send();
                     $this->refreshFormData(['status']);

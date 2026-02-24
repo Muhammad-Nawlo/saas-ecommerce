@@ -11,12 +11,13 @@ use App\Modules\Payments\Domain\Events\PaymentSucceeded;
 use App\Services\Financial\FinancialOrderSyncService;
 use App\Services\Financial\OrderLockService;
 use App\Services\Financial\OrderPaymentService;
+use App\Services\Financial\PaymentSnapshotService;
 use App\Models\Financial\FinancialOrder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * After operational payment succeeds: sync financial order, lock, mark paid.
+ * After operational payment succeeds: sync financial order, lock, mark paid, fill payment snapshot.
  * Dispatches OrderPaid (financial) which triggers invoice and financial_transaction creation.
  *
  * Idempotent: if financial order already exists and is paid, skips.
@@ -28,6 +29,7 @@ final class SyncFinancialOrderOnPaymentSucceededListener
         private FinancialOrderSyncService $syncService,
         private OrderLockService $lockService,
         private OrderPaymentService $paymentService,
+        private PaymentSnapshotService $paymentSnapshotService,
     ) {
     }
 
@@ -42,8 +44,9 @@ final class SyncFinancialOrderOnPaymentSucceededListener
 
         $payment = $this->paymentRepository->findById(PaymentId::fromString($event->paymentId->value()));
         $providerReference = $payment !== null ? ($payment->providerPaymentId() ?? '') : '';
+        $tenantId = $order->tenant_id ?? (string) tenant('id');
 
-        DB::transaction(function () use ($order, $providerReference): void {
+        DB::transaction(function () use ($order, $providerReference, $payment, $tenantId): void {
             $existing = FinancialOrder::where('operational_order_id', $order->id)->first();
             if ($existing !== null && $existing->status === FinancialOrder::STATUS_PAID) {
                 return;
@@ -61,6 +64,10 @@ final class SyncFinancialOrderOnPaymentSucceededListener
 
             if ($financialOrder->status !== FinancialOrder::STATUS_PAID) {
                 $this->paymentService->markPaid($financialOrder, $providerReference);
+            }
+
+            if ($payment !== null) {
+                $this->paymentSnapshotService->fillSnapshot($payment, $tenantId);
             }
         });
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Landlord\Models\Tenant;
 use App\Models\Invoice\Invoice;
 use App\Services\Invoice\InvoiceService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 
@@ -33,5 +33,5 @@ test('credit note cannot exceed total', function (): void {
         'locked_at' => now(),
     ]);
     $service = app(InvoiceService::class);
-    $service->createCreditNote($invoice, Money::fromCents(6000, 'USD'), 'Refund');
+    $service->createCreditNote($invoice, Money::fromMinorUnits(6000, 'USD'), 'Refund');
 })->throws(\InvalidArgumentException::class)->group('invoice');

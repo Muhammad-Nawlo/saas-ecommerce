@@ -8,7 +8,7 @@ use App\Models\Currency\ExchangeRate;
 use App\Models\Currency\TenantCurrencySetting;
 use App\Services\Currency\CurrencyConversionService;
 use App\Services\Currency\ExchangeRateService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -46,9 +46,9 @@ test('get rate at returns historical rate', function (): void {
 
 test('convert with historical date uses historical rate', function (): void {
     $eur = Currency::where('code', 'EUR')->first();
-    $money = Money::fromCents(10000, 'USD');
+    $money = Money::fromMinorUnits(10000, 'USD');
     $conversion = app(CurrencyConversionService::class);
     $converted = $conversion->convert($money, $eur, Carbon::yesterday()->addHour());
-    expect($converted->currency)->toBe('EUR');
-    expect($converted->amount)->toBe(9000); // 100 * 0.90
+    expect($converted->getCurrency())->toBe('EUR');
+    expect($converted->getMinorUnits())->toBe(9000); // 100 * 0.90
 })->group('multi_currency');

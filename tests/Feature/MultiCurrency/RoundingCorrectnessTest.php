@@ -8,7 +8,7 @@ use App\Models\Currency\ExchangeRate;
 use App\Models\Currency\TenantCurrencySetting;
 use App\Services\Currency\CurrencyConversionService;
 use App\Services\Currency\ExchangeRateService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 
@@ -34,15 +34,15 @@ beforeEach(function (): void {
 
 test('half_up rounding rounds correctly', function (): void {
     $eur = Currency::where('code', 'EUR')->first();
-    $money = Money::fromCents(10001, 'USD'); // 100.01 USD -> 92.0092 EUR -> 9201 cents
+    $money = Money::fromMinorUnits(10001, 'USD'); // 100.01 USD -> 92.0092 EUR -> 9201 cents
     $converted = app(CurrencyConversionService::class)->convert($money, $eur);
-    expect($converted->currency)->toBe('EUR');
-    expect($converted->amount)->toBe(9201);
+    expect($converted->getCurrency())->toBe('EUR');
+    expect($converted->getMinorUnits())->toBe(9201);
 })->group('multi_currency');
 
-test('money convertWithRate returns correct amount', function (): void {
-    $money = Money::fromCents(10000, 'USD');
-    $converted = $money->convertWithRate(0.92, 'EUR');
-    expect($converted->currency)->toBe('EUR');
-    expect($converted->amount)->toBe(9200);
+test('conversion service returns correct amount for rate', function (): void {
+    $money = Money::fromMinorUnits(10000, 'USD');
+    $converted = app(CurrencyConversionService::class)->convert($money, Currency::where('code', 'EUR')->first());
+    expect($converted->getCurrency())->toBe('EUR');
+    expect($converted->getMinorUnits())->toBe(9200);
 })->group('multi_currency');

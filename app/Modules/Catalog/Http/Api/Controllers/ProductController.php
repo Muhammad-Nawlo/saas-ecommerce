@@ -21,7 +21,7 @@ use App\Modules\Catalog\Domain\ValueObjects\ProductId;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
 use App\Modules\Shared\Domain\Exceptions\InvalidValueObject;
 use App\Modules\Shared\Domain\Exceptions\NoActiveSubscriptionException;
-use App\Modules\Shared\Domain\Exceptions\PlanLimitExceededException;
+use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use App\Modules\Shared\Domain\ValueObjects\Slug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,8 +79,8 @@ final class ProductController
         );
         try {
             ($this->createProductHandler)($command);
-        } catch (PlanLimitExceededException $e) {
-            return new JsonResponse(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (FeatureNotEnabledException $e) {
+            return new JsonResponse(['message' => $e->getMessage()], Response::HTTP_FORBIDDEN);
         } catch (NoActiveSubscriptionException $e) {
             return new JsonResponse(['message' => $e->getMessage()], Response::HTTP_FORBIDDEN);
         }

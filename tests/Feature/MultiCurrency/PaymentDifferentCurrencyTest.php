@@ -6,7 +6,7 @@ use App\Landlord\Models\Tenant;
 use App\Models\Currency\Currency;
 use App\Models\Currency\TenantCurrencySetting;
 use App\Services\Currency\CurrencyConversionService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 
@@ -33,11 +33,11 @@ beforeEach(function (): void {
 test('convert with snapshot returns converted amount and rate snapshot', function (): void {
     $eur = Currency::where('code', 'EUR')->first();
     $usd = Currency::where('code', 'USD')->first();
-    $money = Money::fromCents(10000, 'USD');
+    $money = Money::fromMinorUnits(10000, 'USD');
     $conversion = app(CurrencyConversionService::class);
     $result = $conversion->convertWithSnapshot($money, $eur);
-    expect($result['converted']->currency)->toBe('EUR');
-    expect($result['converted']->amount)->toBe(9200);
+    expect($result['converted']->getCurrency())->toBe('EUR');
+    expect($result['converted']->getMinorUnits())->toBe(9200);
     expect($result['rate_snapshot'])->toBeArray();
     expect($result['rate_snapshot']['base_code'] ?? null)->toBe('USD');
     expect($result['rate_snapshot']['target_code'] ?? null)->toBe('EUR');

@@ -6,7 +6,7 @@ namespace App\Services\Currency;
 
 use App\Models\Currency\Currency;
 use App\Models\Currency\TenantCurrencySetting;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use InvalidArgumentException;
 
 /**
@@ -25,9 +25,9 @@ final class CurrencyConversionService
      */
     public function convert(Money $money, Currency $target, ?\DateTimeInterface $at = null): Money
     {
-        $baseCurrency = Currency::where('code', $money->currency)->first();
+        $baseCurrency = Currency::where('code', $money->getCurrency())->first();
         if ($baseCurrency === null) {
-            throw new InvalidArgumentException("Unknown currency: {$money->currency}");
+            throw new InvalidArgumentException("Unknown currency: {$money->getCurrency()}");
         }
         if ($baseCurrency->id === $target->id) {
             return $money;
@@ -37,15 +37,15 @@ final class CurrencyConversionService
             : $this->rateService->getCurrentRate($baseCurrency, $target);
         if ($rateRow === null) {
             throw new InvalidArgumentException(
-                "No exchange rate from {$money->currency} to {$target->code} at " . ($at ? $at->format('c') : 'now')
+                "No exchange rate from {$money->getCurrency()} to {$target->code} at " . ($at ? $at->format('c') : 'now')
             );
         }
         $tenantId = tenant('id');
         $strategy = $tenantId !== null
             ? (app(CurrencyService::class)->getSettings((string) $tenantId)?->rounding_strategy ?? TenantCurrencySetting::ROUNDING_HALF_UP)
             : TenantCurrencySetting::ROUNDING_HALF_UP;
-        $convertedMinor = $this->round($money->amount * $rateRow->rate, $strategy);
-        return Money::fromCents((int) $convertedMinor, $target->code);
+        $convertedMinor = $this->round($money->getMinorUnits() * $rateRow->rate, $strategy);
+        return Money::fromMinorUnits((int) $convertedMinor, $target->code);
     }
 
     /**
@@ -55,9 +55,9 @@ final class CurrencyConversionService
      */
     public function convertWithSnapshot(Money $money, Currency $target, ?\DateTimeInterface $at = null): array
     {
-        $baseCurrency = Currency::where('code', $money->currency)->first();
+        $baseCurrency = Currency::where('code', $money->getCurrency())->first();
         if ($baseCurrency === null) {
-            throw new InvalidArgumentException("Unknown currency: {$money->currency}");
+            throw new InvalidArgumentException("Unknown currency: {$money->getCurrency()}");
         }
         if ($baseCurrency->id === $target->id) {
             $snapshot = [
@@ -77,15 +77,15 @@ final class CurrencyConversionService
             ? $this->rateService->getRateAt($baseCurrency, $target, $at)
             : $this->rateService->getCurrentRate($baseCurrency, $target);
         if ($rateRow === null) {
-            throw new InvalidArgumentException("No exchange rate from {$money->currency} to {$target->code}");
+            throw new InvalidArgumentException("No exchange rate from {$money->getCurrency()} to {$target->code}");
         }
         $tenantId = tenant('id');
         $strategy = $tenantId !== null
             ? (app(CurrencyService::class)->getSettings((string) $tenantId)?->rounding_strategy ?? TenantCurrencySetting::ROUNDING_HALF_UP)
             : TenantCurrencySetting::ROUNDING_HALF_UP;
-        $convertedMinor = $this->round($money->amount * $rateRow->rate, $strategy);
+        $convertedMinor = $this->round($money->getMinorUnits() * $rateRow->rate, $strategy);
         return [
-            'converted' => Money::fromCents((int) $convertedMinor, $target->code),
+            'converted' => Money::fromMinorUnits((int) $convertedMinor, $target->code),
             'rate_snapshot' => $rateRow->toSnapshot(),
         ];
     }

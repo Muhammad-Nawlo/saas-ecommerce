@@ -115,6 +115,31 @@ class FinancialOrder extends Model
         return $this->status === self::STATUS_DRAFT;
     }
 
+    /**
+     * Guard: block modification of financial fields when order is no longer draft.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (FinancialOrder $order): void {
+            if ($order->getOriginal('status') !== self::STATUS_DRAFT) {
+                $order->subtotal_cents = $order->getOriginal('subtotal_cents');
+                $order->tax_total_cents = $order->getOriginal('tax_total_cents');
+                $order->total_cents = $order->getOriginal('total_cents');
+                $order->currency = $order->getOriginal('currency');
+                $order->base_currency = $order->getOriginal('base_currency');
+                $order->display_currency = $order->getOriginal('display_currency');
+                $order->exchange_rate_snapshot = $order->getOriginal('exchange_rate_snapshot');
+                $order->subtotal_base_cents = $order->getOriginal('subtotal_base_cents');
+                $order->subtotal_display_cents = $order->getOriginal('subtotal_display_cents');
+                $order->tax_base_cents = $order->getOriginal('tax_base_cents');
+                $order->tax_display_cents = $order->getOriginal('tax_display_cents');
+                $order->total_base_cents = $order->getOriginal('total_base_cents');
+                $order->total_display_cents = $order->getOriginal('total_display_cents');
+                $order->snapshot = $order->getOriginal('snapshot');
+            }
+        });
+    }
+
     public function scopeForTenant(Builder $query, ?string $tenantId): Builder
     {
         if ($tenantId === null) {

@@ -7,7 +7,7 @@ namespace App\Filament\Tenant\Resources;
 use App\Models\Invoice\Invoice;
 use App\Services\Invoice\InvoicePdfGenerator;
 use App\Services\Invoice\InvoiceService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

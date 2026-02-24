@@ -6,7 +6,7 @@ namespace App\Filament\Tenant\Resources\ProductResource\Pages;
 
 use App\Filament\Tenant\Resources\ProductResource;
 use App\Modules\Catalog\Infrastructure\Persistence\ProductModel;
-use App\Modules\Shared\Domain\Exceptions\PlanLimitExceededException;
+use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Str;
 
@@ -25,7 +25,7 @@ class CreateProduct extends CreateRecord
         if ($limit !== null) {
             $current = ProductModel::forTenant((string) $tenantId)->count();
             if ($current >= $limit) {
-                throw PlanLimitExceededException::forFeature('products_limit', $limit);
+                throw FeatureNotEnabledException::forLimit('products_limit');
             }
         }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources;
 
 use App\Modules\Catalog\Infrastructure\Persistence\ProductModel;
-use App\Modules\Shared\Domain\Exceptions\PlanLimitExceededException;
+use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Inventory;
 
+use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
 use App\Models\Inventory\InventoryLocation;
 use Illuminate\Support\Str;
@@ -89,7 +90,7 @@ final class InventoryLocationService
     private function ensureMultiLocationOrFirst(string $tenantId): void
     {
         if (!$this->canCreateMoreLocations($tenantId)) {
-            throw new InvalidArgumentException('Multi-location inventory is not enabled for this tenant. Only one location is allowed.');
+            throw FeatureNotEnabledException::forFeature('multi_location_inventory');
         }
     }
 }

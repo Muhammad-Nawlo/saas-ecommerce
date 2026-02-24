@@ -124,6 +124,25 @@ class Invoice extends Model
         return in_array($this->status, [self::STATUS_ISSUED, self::STATUS_PAID, self::STATUS_PARTIALLY_PAID, self::STATUS_REFUNDED], true);
     }
 
+    /**
+     * Guard: block modification of totals and snapshot once invoice is issued.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (Invoice $invoice): void {
+            $origStatus = $invoice->getOriginal('status');
+            $alreadyIssued = in_array($origStatus, [self::STATUS_ISSUED, self::STATUS_PAID, self::STATUS_PARTIALLY_PAID, self::STATUS_REFUNDED], true);
+            if ($alreadyIssued || $invoice->getOriginal('locked_at') !== null) {
+                $invoice->subtotal_cents = $invoice->getOriginal('subtotal_cents');
+                $invoice->tax_total_cents = $invoice->getOriginal('tax_total_cents');
+                $invoice->discount_total_cents = $invoice->getOriginal('discount_total_cents');
+                $invoice->total_cents = $invoice->getOriginal('total_cents');
+                $invoice->currency = $invoice->getOriginal('currency');
+                $invoice->snapshot = $invoice->getOriginal('snapshot');
+            }
+        });
+    }
+
     public function totalPaidCents(): int
     {
         return (int) $this->payments()->sum('amount_cents');

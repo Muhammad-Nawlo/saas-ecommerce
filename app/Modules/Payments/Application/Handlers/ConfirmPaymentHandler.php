@@ -10,6 +10,7 @@ use App\Modules\Payments\Application\Services\PaymentService;
 use App\Modules\Payments\Domain\Repositories\PaymentRepository;
 use App\Modules\Payments\Domain\ValueObjects\PaymentId;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
+use App\Modules\Shared\Domain\Exceptions\PaymentAlreadyProcessedException;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
 
 final readonly class ConfirmPaymentHandler
@@ -29,6 +30,9 @@ final readonly class ConfirmPaymentHandler
             $payment = $this->paymentRepository->findById($paymentId);
             if ($payment === null) {
                 throw new DomainException('Payment not found');
+            }
+            if ($payment->status()->value() === 'succeeded') {
+                throw new PaymentAlreadyProcessedException('Payment has already been processed.');
             }
             $providerPaymentId = $payment->providerPaymentId() ?? $command->providerPaymentId;
             if ($providerPaymentId === null || $providerPaymentId === '') {

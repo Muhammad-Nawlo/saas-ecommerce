@@ -4,78 +4,95 @@ declare(strict_types=1);
 
 namespace App\Modules\Shared\Domain\ValueObjects;
 
+use App\Modules\Shared\Domain\Exceptions\CurrencyMismatchException;
 use App\Modules\Shared\Domain\Exceptions\InvalidValueObject;
 
+/**
+ * Single canonical money value object. Amount in minor units (cents) only; no float math.
+ * All arithmetic enforces same currency; throws CurrencyMismatchException on mismatch.
+ */
 final readonly class Money
 {
     private function __construct(
-        private int $amountInMinorUnits,
-        private string $currency
+        private int $amount,
+        private string $currency,
     ) {
     }
 
-    public static function fromMinorUnits(int $amountInMinorUnits, string $currency): self
+    public static function fromMinorUnits(int $amount, string $currency): self
     {
-        if (strlen(trim($currency)) !== 3) {
+        $currency = strtoupper(trim($currency));
+        if (strlen($currency) !== 3) {
             throw InvalidValueObject::forValue(self::class, $currency, 'Currency must be a 3-letter ISO 4217 code');
         }
-        return new self($amountInMinorUnits, strtoupper(trim($currency)));
+        return new self($amount, $currency);
     }
 
-    public static function fromMajorUnits(float $amount, string $currency): self
+    public function getMinorUnits(): int
     {
-        if (strlen(trim($currency)) !== 3) {
-            throw InvalidValueObject::forValue(self::class, $currency, 'Currency must be a 3-letter ISO 4217 code');
-        }
-        $minor = (int) round($amount * 100);
-        return new self($minor, strtoupper(trim($currency)));
+        return $this->amount;
     }
 
+    public function getCurrency(): string
+    {
+        return $this->currency;
+    }
+
+    /** @deprecated Use getMinorUnits() */
     public function amountInMinorUnits(): int
     {
-        return $this->amountInMinorUnits;
+        return $this->amount;
     }
 
-    public function amountInMajorUnits(): float
-    {
-        return $this->amountInMinorUnits / 100;
-    }
-
+    /** @deprecated Use getCurrency() */
     public function currency(): string
     {
         return $this->currency;
     }
 
-    public function add(Money $other): self
+    public function equals(self $other): bool
     {
-        $this->assertSameCurrency($other);
-        return new self($this->amountInMinorUnits + $other->amountInMinorUnits, $this->currency);
+        return $this->currency === $other->currency && $this->amount === $other->amount;
     }
 
-    public function subtract(Money $other): self
+    public function add(self $other): self
     {
         $this->assertSameCurrency($other);
-        return new self($this->amountInMinorUnits - $other->amountInMinorUnits, $this->currency);
+        return new self($this->amount + $other->amount, $this->currency);
     }
 
-    public function equals(Money $other): bool
+    public function subtract(self $other): self
     {
-        return $this->currency === $other->currency && $this->amountInMinorUnits === $other->amountInMinorUnits;
+        $this->assertSameCurrency($other);
+        return new self($this->amount - $other->amount, $this->currency);
+    }
+
+    public function multiply(int $multiplier): self
+    {
+        return new self($this->amount * $multiplier, $this->currency);
+    }
+
+    /** @return array{amount: int, currency: string} */
+    public function toArray(): array
+    {
+        return ['amount' => $this->amount, 'currency' => $this->currency];
     }
 
     public function __toString(): string
     {
-        return number_format($this->amountInMajorUnits(), 2) . ' ' . $this->currency;
+        return number_format($this->amount / 100, 2) . ' ' . $this->currency;
     }
 
-    private function assertSameCurrency(Money $other): void
+    /** Human-readable format (same as __toString). */
+    public function format(): string
+    {
+        return $this->__toString();
+    }
+
+    private function assertSameCurrency(self $other): void
     {
         if ($this->currency !== $other->currency) {
-            throw InvalidValueObject::forValue(
-                self::class,
-                $other->currency,
-                'Cannot operate on different currencies: ' . $this->currency . ' vs ' . $other->currency
-            );
+            throw CurrencyMismatchException::forCurrencies($this->currency, $other->currency);
         }
     }
 }

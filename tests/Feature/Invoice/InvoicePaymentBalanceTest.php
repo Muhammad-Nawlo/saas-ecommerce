@@ -5,7 +5,7 @@ declare(strict_types=1);
 use App\Landlord\Models\Tenant;
 use App\Models\Invoice\Invoice;
 use App\Services\Invoice\InvoiceService;
-use App\ValueObjects\Money;
+use App\Modules\Shared\Domain\ValueObjects\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 
@@ -33,8 +33,8 @@ test('payment cannot exceed balance', function (): void {
         'locked_at' => now(),
     ]);
     $service = app(InvoiceService::class);
-    $service->applyPayment($invoice, Money::fromCents(5000, 'USD'));
+    $service->applyPayment($invoice, Money::fromMinorUnits(5000, 'USD'));
     $invoice->refresh();
     expect($invoice->totalPaidCents())->toBe(5000);
-    $service->applyPayment($invoice, Money::fromCents(6000, 'USD'));
+    $service->applyPayment($invoice, Money::fromMinorUnits(6000, 'USD'));
 })->throws(\InvalidArgumentException::class)->group('invoice');

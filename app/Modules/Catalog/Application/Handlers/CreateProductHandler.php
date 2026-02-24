@@ -10,7 +10,7 @@ use App\Modules\Catalog\Domain\Repositories\ProductRepository;
 use App\Modules\Catalog\Domain\ValueObjects\ProductDescription;
 use App\Modules\Catalog\Domain\ValueObjects\ProductId;
 use App\Modules\Catalog\Domain\ValueObjects\ProductName;
-use App\Modules\Shared\Domain\Exceptions\PlanLimitExceededException;
+use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use App\Modules\Shared\Domain\ValueObjects\Money;
 use App\Modules\Shared\Domain\ValueObjects\Slug;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
@@ -29,7 +29,7 @@ final readonly class CreateProductHandler
         if ($limit !== null) {
             $currentCount = $this->productRepository->countForCurrentTenant();
             if ($currentCount >= $limit) {
-                throw PlanLimitExceededException::forFeature('products_limit', $limit);
+                throw FeatureNotEnabledException::forLimit('products_limit');
             }
         }
 
