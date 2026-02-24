@@ -1,0 +1,71 @@
+app/Modules/Cart/
+├── Application/
+│   ├── Commands/
+│   │   ├── AbandonCartCommand.php
+│   │   ├── AddItemToCartCommand.php
+│   │   ├── ClearCartCommand.php
+│   │   ├── ConvertCartCommand.php
+│   │   ├── CreateCartCommand.php
+│   │   ├── RemoveItemFromCartCommand.php
+│   │   └── UpdateCartItemCommand.php
+│   ├── DTOs/
+│   │   ├── CartDTO.php
+│   │   └── CartItemDTO.php
+│   ├── Handlers/
+│   │   ├── AbandonCartHandler.php
+│   │   ├── AddItemToCartHandler.php
+│   │   ├── ClearCartHandler.php
+│   │   ├── ConvertCartHandler.php
+│   │   ├── CreateCartHandler.php
+│   │   ├── RemoveItemFromCartHandler.php
+│   │   └── UpdateCartItemHandler.php
+│   └── Services/
+│       ├── OrderCreationService.php
+│       └── StockValidationService.php
+├── Domain/
+│   ├── Entities/
+│   │   ├── Cart.php
+│   │   └── CartItem.php
+│   ├── Events/
+│   │   ├── CartAbandoned.php
+│   │   ├── CartCleared.php
+│   │   ├── CartConverted.php
+│   │   ├── CartCreated.php
+│   │   ├── CartItemAdded.php
+│   │   ├── CartItemRemoved.php
+│   │   └── CartItemUpdated.php
+│   ├── Exceptions/
+│   │   ├── CartAlreadyConvertedException.php
+│   │   └── InvalidCartStateException.php
+│   ├── Repositories/
+│   │   └── CartRepository.php
+│   └── ValueObjects/
+│       ├── CartId.php
+│       ├── CartItemId.php
+│       ├── CartStatus.php
+│       ├── CustomerEmail.php
+│       ├── ProductId.php
+│       └── Quantity.php
+├── Infrastructure/
+│   ├── Http/
+│   │   └── Api/
+│   │       ├── Controllers/
+│   │       │   └── CartController.php
+│   │       ├── Requests/
+│   │       │   ├── AddCartItemRequest.php
+│   │       │   ├── CreateCartRequest.php
+│   │       │   └── UpdateCartItemRequest.php
+│   │       └── Resources/
+│   │           └── CartResource.php
+│   ├── Persistence/
+│   │   ├── CartItemModel.php
+│   │   ├── CartModel.php
+│   │   └── EloquentCartRepository.php
+│   └── Services/
+│       ├── CartOrderCreationService.php
+│       └── CartStockValidationService.php
+└── Providers/
+    └── CartServiceProvider.php
+
+Routes: routes/api/v1/cart.php
+Tenant migrations: database/migrations/tenant/2026_02_24_000005_create_carts_table.php, 2026_02_24_000006_create_cart_items_table.php
