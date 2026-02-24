@@ -6,6 +6,7 @@ namespace App\Landlord\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Plan extends Model
 {
-    use HasUuids;
+    use HasUuids, SoftDeletes;
 
     protected $connection;
 
@@ -32,10 +33,12 @@ class Plan extends Model
         'price',
         'billing_interval',
         'stripe_price_id',
+        'is_active',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
     public function __construct(array $attributes = [])
@@ -60,5 +63,13 @@ class Plan extends Model
         return $this->belongsToMany(Feature::class, 'plan_features')
             ->withPivot('value')
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasMany<Subscription, $this>
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
     }
 }

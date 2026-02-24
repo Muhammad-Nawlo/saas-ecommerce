@@ -6,6 +6,7 @@ namespace App\Landlord\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
@@ -21,7 +22,7 @@ class Feature extends Model
     public const string TYPE_LIMIT = 'limit';
     public const string TYPE_BOOLEAN = 'boolean';
 
-    use HasUuids;
+    use HasUuids, SoftDeletes;
 
     protected $connection;
 
