@@ -25,6 +25,7 @@ final class OrderModel extends Model
         'status',
         'total_amount',
         'currency',
+        'internal_notes',
     ];
 
     protected $casts = [

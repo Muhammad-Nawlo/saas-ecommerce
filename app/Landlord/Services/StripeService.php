@@ -96,14 +96,16 @@ final class StripeService
 
     /**
      * Create a Stripe Billing Portal session URL for the tenant to manage subscription.
+     *
+     * @param string|null $returnUrl Optional return URL (e.g. tenant dashboard). If null, uses default landlord route.
      */
-    public function createPortalSession(Tenant $tenant): string
+    public function createPortalSession(Tenant $tenant, ?string $returnUrl = null): string
     {
         $customerId = $this->createCustomerIfNotExists($tenant);
 
         $session = $this->stripe->billingPortal->sessions->create([
             'customer' => $customerId,
-            'return_url' => $this->url(self::PORTAL_RETURN_ROUTE),
+            'return_url' => $returnUrl ?? $this->url(self::PORTAL_RETURN_ROUTE),
         ]);
 
         return (string) $session->url;

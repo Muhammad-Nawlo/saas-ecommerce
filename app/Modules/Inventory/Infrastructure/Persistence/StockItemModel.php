@@ -34,4 +34,9 @@ final class StockItemModel extends Model
     {
         return $query->where('tenant_id', $tenantId);
     }
+
+    public function product(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Catalog\Infrastructure\Persistence\ProductModel::class, 'product_id', 'id');
+    }
 }
