@@ -12,6 +12,7 @@ use App\Models\Invoice\InvoicePayment;
 use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
 use App\Modules\Shared\Domain\ValueObjects\Money;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
@@ -145,6 +146,12 @@ final class InvoiceService
                 'timestamp' => now()->toIso8601String(),
             ],
         );
+        Log::info('Invoice issued', [
+            'tenant_id' => $invoice->tenant_id,
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'order_id' => $invoice->order_id,
+        ]);
     }
 
     /**

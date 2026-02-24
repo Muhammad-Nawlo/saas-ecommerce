@@ -9,7 +9,7 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 Route::middleware([
     'api',
-    'throttle:api',
+    'throttle:checkout',
     InitializeTenancyBySubdomain::class,
     PreventAccessFromCentralDomains::class,
 ])

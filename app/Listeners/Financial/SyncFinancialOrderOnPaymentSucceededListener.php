@@ -69,6 +69,11 @@ final class SyncFinancialOrderOnPaymentSucceededListener
             if ($payment !== null) {
                 $this->paymentSnapshotService->fillSnapshot($payment, $tenantId);
             }
+            Log::info('Payment success: financial order synced and paid', [
+                'tenant_id' => $tenantId,
+                'operational_order_id' => $order->id,
+                'financial_order_id' => $financialOrder->id,
+            ]);
         });
     }
 }

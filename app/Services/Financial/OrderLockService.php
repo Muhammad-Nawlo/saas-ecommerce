@@ -11,6 +11,7 @@ use App\Models\Financial\FinancialOrderItem;
 use App\Models\Financial\FinancialOrderTaxLine;
 use App\Models\Financial\TaxRate;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
@@ -72,6 +73,12 @@ final class OrderLockService
         });
 
         event(new OrderLocked($order));
+        Log::info('Financial order locked', [
+            'tenant_id' => $order->tenant_id,
+            'financial_order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'total_cents' => $order->total_cents,
+        ]);
     }
 
     private function getApplicableRates(FinancialOrder $order, ?string $countryCode, ?string $regionCode): array

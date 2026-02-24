@@ -7,6 +7,7 @@ namespace App\Services\Financial;
 use App\Events\Financial\OrderPaid;
 use App\Models\Financial\FinancialOrder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
@@ -30,5 +31,11 @@ final class OrderPaymentService
         });
 
         event(new OrderPaid($order, $providerReference));
+        Log::info('Financial order marked paid', [
+            'tenant_id' => $order->tenant_id,
+            'financial_order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'provider_reference' => $providerReference,
+        ]);
     }
 }

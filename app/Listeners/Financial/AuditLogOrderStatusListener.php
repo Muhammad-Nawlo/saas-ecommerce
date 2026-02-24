@@ -10,6 +10,9 @@ use App\Events\Financial\OrderRefunded;
 use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
 use Illuminate\Support\Facades\Request;
 
+/**
+ * Audit logs for order locked/paid/refunded. Runs sync so tenant context is available for logging.
+ */
 class AuditLogOrderStatusListener
 {
     public function __construct(

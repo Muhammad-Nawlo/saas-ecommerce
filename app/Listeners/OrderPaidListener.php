@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class OrderPaidListener implements ShouldQueue
 {
+    public string $queue = 'default';
+
     public function handle(PaymentSucceeded $event): void
     {
         Log::channel('stack')->info('Order paid', [

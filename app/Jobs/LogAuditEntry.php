@@ -13,11 +13,19 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Writes a single audit log entry asynchronously. Does not block the request.
- * Dispatched to low-priority queue.
  */
 class LogAuditEntry implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /** @var string */
+    public string $queue = 'audit';
+
+    /** @var int */
+    public int $tries = 3;
+
+    /** @var array<int, int> */
+    public array $backoff = [5, 30, 60];
 
     public function __construct(
         public string $connection,

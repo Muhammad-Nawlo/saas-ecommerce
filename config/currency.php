@@ -23,4 +23,11 @@ return [
     |--------------------------------------------------------------------------
     */
     'rate_cache_ttl' => (int) env('CURRENCY_RATE_CACHE_TTL', 3600),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache TTL for tenant currency settings (seconds)
+    |--------------------------------------------------------------------------
+    */
+    'settings_cache_ttl' => (int) env('CURRENCY_SETTINGS_CACHE_TTL', 300),
 ];

@@ -13,3 +13,6 @@ Schedule::command('billing:suspend-past-grace-period')->daily();
 
 // Prune old audit logs (tenant 180 days, landlord 365 days).
 Schedule::command('audit:prune')->daily();
+
+// Production: prune tenant audit logs, inventory movements, Stripe events per config('retention.*').
+Schedule::command('retention:prune')->daily()->at('02:00');

@@ -10,11 +10,21 @@ use App\Events\Financial\OrderRefunded;
 use App\Models\Financial\FinancialTransaction;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Creates financial transaction records on order paid/refunded. Runs sync to preserve tenant context.
+ */
 class CreateFinancialTransactionListener
 {
     public function handleOrderPaid(OrderPaid $event): void
     {
         $order = $event->order;
+        $exists = FinancialTransaction::where('order_id', $order->id)
+            ->where('type', FinancialTransaction::TYPE_CREDIT)
+            ->where('status', FinancialTransaction::STATUS_COMPLETED)
+            ->exists();
+        if ($exists) {
+            return;
+        }
         DB::transaction(function () use ($order, $event): void {
             FinancialTransaction::create([
                 'tenant_id' => $order->tenant_id,

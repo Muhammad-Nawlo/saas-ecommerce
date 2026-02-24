@@ -36,6 +36,8 @@ use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,6 +55,9 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerRateLimiters();
+        $this->registerFailedJobHandling();
+
         RateLimiter::for('api', fn () => Limit::perMinute(60)->by(request()->user()?->id ?: request()->ip()));
         RateLimiter::for('customer-register', fn () => Limit::perMinute(5)->by(request()->ip()));
         RateLimiter::for('customer-login', fn () => Limit::perMinute(5)->by(request()->ip()));
@@ -80,5 +85,34 @@ class AppServiceProvider extends ServiceProvider
         Feature::observe(FeatureAuditObserver::class);
         Subscription::observe(SubscriptionAuditObserver::class);
         Tenant::observe(TenantAuditObserver::class);
+    }
+
+    private function registerRateLimiters(): void
+    {
+        RateLimiter::for('checkout', fn () => Limit::perMinute(30)->by(request()->user()?->id ?: request()->ip()));
+        RateLimiter::for('payment', fn () => Limit::perMinute(20)->by(request()->user()?->id ?: request()->ip()));
+        RateLimiter::for('webhook', fn () => Limit::perMinute(120)->by(request()->ip()));
+        RateLimiter::for('login', fn () => Limit::perMinute(10)->by(request()->ip()));
+    }
+
+    private function registerFailedJobHandling(): void
+    {
+        Queue::failing(function (\Illuminate\Queue\Events\JobFailed $event): void {
+            Log::error('Queue job failed', [
+                'connection' => $event->connectionName,
+                'queue' => $event->job->getQueue(),
+                'job' => $event->job->getName(),
+                'exception' => $event->exception->getMessage(),
+                'uuid' => $event->job->uuid(),
+            ]);
+            if (class_exists(\App\Events\JobFailed::class)) {
+                event(new \App\Events\JobFailed(
+                    $event->connectionName,
+                    $event->job->getQueue(),
+                    $event->job->payload(),
+                    $event->exception
+                ));
+            }
+        });
     }
 }

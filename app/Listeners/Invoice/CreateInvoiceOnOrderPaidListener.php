@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Listeners\Invoice;
 
 use App\Events\Financial\OrderPaid;
+use App\Models\Invoice\Invoice;
 use App\Services\Invoice\InvoiceService;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Creates invoice when financial order is marked paid. Idempotent: skips if invoice already exists.
+ * Runs sync to preserve tenant context.
+ */
 class CreateInvoiceOnOrderPaidListener
 {
     public function __construct(
@@ -17,6 +22,9 @@ class CreateInvoiceOnOrderPaidListener
     public function handle(OrderPaid $event): void
     {
         if (!config('invoicing.auto_generate_invoice_on_payment', false)) {
+            return;
+        }
+        if (Invoice::where('order_id', $event->order->id)->exists()) {
             return;
         }
         try {

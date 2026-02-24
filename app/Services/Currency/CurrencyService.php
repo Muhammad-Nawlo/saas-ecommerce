@@ -8,6 +8,7 @@ use App\Models\Currency\Currency;
 use App\Models\Currency\TenantCurrencySetting;
 use App\Models\Currency\TenantEnabledCurrency;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
 use InvalidArgumentException;
 
@@ -73,7 +74,11 @@ final class CurrencyService
     public function getSettings(?string $tenantId = null): ?TenantCurrencySetting
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        return TenantCurrencySetting::where('tenant_id', $tenantId)->with('baseCurrency')->first();
+        $key = 'tenant_currency_settings:' . $tenantId;
+        $ttl = (int) config('currency.settings_cache_ttl', 300);
+        return Cache::remember($key, $ttl, function () use ($tenantId): ?TenantCurrencySetting {
+            return TenantCurrencySetting::where('tenant_id', $tenantId)->with('baseCurrency')->first();
+        });
     }
 
     private function ensureMultiCurrencyAllowed(string $tenantId): void

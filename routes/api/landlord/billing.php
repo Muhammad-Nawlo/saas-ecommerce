@@ -20,7 +20,7 @@ Route::prefix('subscriptions')->group(function (): void {
 });
 Route::prefix('billing')->group(function (): void {
     Route::post('checkout/{plan}', BillingCheckoutController::class)->name('landlord.billing.checkout');
-    Route::post('webhook', \App\Landlord\Http\Controllers\StripeWebhookController::class)->name('landlord.billing.webhook');
+    Route::post('webhook', \App\Landlord\Http\Controllers\StripeWebhookController::class)->middleware('throttle:webhook')->name('landlord.billing.webhook');
     Route::get('success', fn () => response()->json(['message' => 'Checkout successful']))->name('landlord.billing.success');
     Route::get('cancel', fn () => response()->json(['message' => 'Checkout cancelled']))->name('landlord.billing.cancel');
     Route::get('portal/return', fn () => response()->json(['message' => 'Returned from billing portal']))->name('landlord.billing.portal.return');

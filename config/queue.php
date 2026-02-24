@@ -13,6 +13,7 @@ return [
     |
     */
 
+    /* Production: set QUEUE_CONNECTION=redis for scale; database for single-server. */
     'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
@@ -64,6 +65,7 @@ return [
             'after_commit' => false,
         ],
 
+        /* Redis: recommended for production. Use Horizon for worker management. */
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),
