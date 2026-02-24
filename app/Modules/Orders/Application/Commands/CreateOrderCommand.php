@@ -10,7 +10,8 @@ final readonly class CreateOrderCommand implements Command
 {
     public function __construct(
         public string $tenantId,
-        public string $customerEmail
+        public string $customerEmail,
+        public ?string $customerId = null,
     ) {
     }
 }

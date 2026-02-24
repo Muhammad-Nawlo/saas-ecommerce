@@ -22,11 +22,15 @@ use App\Observers\ProductAuditObserver;
 use App\Observers\SubscriptionAuditObserver;
 use App\Observers\TenantAuditObserver;
 use App\Observers\UserAuditObserver;
+use App\Models\Customer\Customer;
+use App\Policies\CustomerIdentityPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\InventoryPolicy;
 use App\Policies\OrderPolicy;
 use App\Policies\ProductPolicy;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -38,9 +42,14 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('customer-register', fn () => Limit::perMinute(5)->by(request()->ip()));
+        RateLimiter::for('customer-login', fn () => Limit::perMinute(5)->by(request()->ip()));
+        RateLimiter::for('customer-forgot-password', fn () => Limit::perMinute(3)->by(request()->ip()));
+        RateLimiter::for('customer-reset-password', fn () => Limit::perMinute(3)->by(request()->ip()));
         Gate::policy(ProductModel::class, ProductPolicy::class);
         Gate::policy(OrderModel::class, OrderPolicy::class);
         Gate::policy(CustomerSummaryModel::class, CustomerPolicy::class);
+        Gate::policy(Customer::class, CustomerIdentityPolicy::class);
         Gate::policy(StockItemModel::class, InventoryPolicy::class);
 
         Gate::policy(Plan::class, PlanPolicy::class);

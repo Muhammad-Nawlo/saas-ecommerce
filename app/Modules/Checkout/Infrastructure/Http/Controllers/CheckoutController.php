@@ -30,10 +30,12 @@ final class CheckoutController
     public function checkout(CheckoutRequest $request): CheckoutResponseResource|JsonResponse
     {
         try {
+            $customerId = $request->user('customer')?->getAuthIdentifier();
             $command = new CheckoutCartCommand(
                 cartId: $request->validated('cart_id'),
                 paymentProvider: $request->validated('payment_provider'),
-                customerEmail: $request->validated('customer_email')
+                customerEmail: $request->validated('customer_email'),
+                customerId: $customerId,
             );
             $dto = ($this->checkoutCartHandler)($command);
             return new CheckoutResponseResource($dto);

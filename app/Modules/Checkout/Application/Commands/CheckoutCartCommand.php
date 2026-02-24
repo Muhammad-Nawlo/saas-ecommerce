@@ -11,7 +11,8 @@ final readonly class CheckoutCartCommand implements Command
     public function __construct(
         public string $cartId,
         public string $paymentProvider,
-        public string $customerEmail
+        public string $customerEmail,
+        public ?string $customerId = null,
     ) {
     }
 }

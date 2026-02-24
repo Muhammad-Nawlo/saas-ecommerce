@@ -18,9 +18,9 @@ final readonly class CartOrderCreationService implements OrderCreationService
     ) {
     }
 
-    public function createOrderFromCart(string $tenantId, string $customerEmail, array $items): string
+    public function createOrderFromCart(string $tenantId, string $customerEmail, array $items, ?string $customerId = null): string
     {
-        $createCommand = new CreateOrderCommand(tenantId: $tenantId, customerEmail: $customerEmail);
+        $createCommand = new CreateOrderCommand(tenantId: $tenantId, customerEmail: $customerEmail, customerId: $customerId);
         $orderId = ($this->createOrderHandler)($createCommand)->value();
         foreach ($items as $item) {
             ($this->addOrderItemHandler)(new AddOrderItemCommand(

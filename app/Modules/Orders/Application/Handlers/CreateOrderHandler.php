@@ -27,7 +27,7 @@ final readonly class CreateOrderHandler
             $tenantId = TenantId::fromString($command->tenantId);
             $customerEmail = CustomerEmail::fromString($command->customerEmail);
             $order = Order::create($id, $tenantId, $customerEmail);
-            $this->orderRepository->save($order);
+            $this->orderRepository->save($order, $command->customerId);
         });
         return $id;
     }

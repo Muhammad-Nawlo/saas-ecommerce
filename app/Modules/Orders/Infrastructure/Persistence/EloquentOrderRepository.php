@@ -28,15 +28,16 @@ final class EloquentOrderRepository implements OrderRepository
     ) {
     }
 
-    public function save(Order $order): void
+    public function save(Order $order, ?string $customerId = null): void
     {
-        $this->transactionManager->run(function () use ($order): void {
+        $this->transactionManager->run(function () use ($order, $customerId): void {
             $tenantId = $this->currentTenantId();
             $orderModelClass = self::ORDER_MODEL;
             $existingOrder = $orderModelClass::forTenant($tenantId)->find($order->id()->value());
             $orderModel = $existingOrder ?? new OrderModel();
             $orderModel->id = $order->id()->value();
             $orderModel->tenant_id = $tenantId;
+            $orderModel->customer_id = $customerId;
             $orderModel->customer_email = $order->customerEmail()->value();
             $orderModel->status = $order->status()->value();
             $orderModel->total_amount = $order->totalAmount()->amountInMinorUnits();

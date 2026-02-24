@@ -19,6 +19,7 @@ final readonly class CheckoutOrderService implements OrderService
         $tenantId = $cartData['tenant_id'] ?? '';
         $customerEmail = $cartData['customer_email'] ?? '';
         $items = $cartData['items'] ?? [];
-        return $this->orderCreationService->createOrderFromCart($tenantId, $customerEmail, $items);
+        $customerId = $cartData['customer_id'] ?? null;
+        return $this->orderCreationService->createOrderFromCart($tenantId, $customerEmail, $items, $customerId);
     }
 }

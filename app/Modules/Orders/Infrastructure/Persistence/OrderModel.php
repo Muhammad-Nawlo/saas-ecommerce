@@ -6,6 +6,7 @@ namespace App\Modules\Orders\Infrastructure\Persistence;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -21,6 +22,7 @@ final class OrderModel extends Model
     protected $fillable = [
         'id',
         'tenant_id',
+        'customer_id',
         'customer_email',
         'status',
         'total_amount',
@@ -40,5 +42,10 @@ final class OrderModel extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItemModel::class, 'order_id', 'id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Customer\Customer::class, 'customer_id', 'id');
     }
 }

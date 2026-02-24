@@ -9,7 +9,7 @@ use App\Modules\Orders\Domain\ValueObjects\OrderId;
 
 interface OrderRepository
 {
-    public function save(Order $order): void;
+    public function save(Order $order, ?string $customerId = null): void;
 
     public function findById(OrderId $id): ?Order;
 
