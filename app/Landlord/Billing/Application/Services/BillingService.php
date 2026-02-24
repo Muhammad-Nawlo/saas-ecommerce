@@ -16,6 +16,7 @@ use App\Landlord\Billing\Domain\ValueObjects\PlanId;
 use App\Landlord\Billing\Domain\ValueObjects\StripeSubscriptionId;
 use App\Landlord\Billing\Domain\ValueObjects\SubscriptionId;
 use App\Landlord\Billing\Domain\ValueObjects\SubscriptionStatus;
+use App\Landlord\Services\FeatureResolver;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
 use Illuminate\Contracts\Events\Dispatcher;
 
@@ -25,7 +26,8 @@ final readonly class BillingService
         private PlanRepository $planRepository,
         private SubscriptionRepository $subscriptionRepository,
         private StripeBillingGateway $stripeGateway,
-        private Dispatcher $events
+        private Dispatcher $events,
+        private FeatureResolver $featureResolver
     ) {
     }
 
@@ -75,6 +77,7 @@ final readonly class BillingService
         foreach ($subscription->pullDomainEvents() as $event) {
             $this->events->dispatch($event);
         }
+        $this->featureResolver->invalidateCacheForTenant($command->tenantId);
         return $subscription;
     }
 
@@ -90,6 +93,7 @@ final readonly class BillingService
         foreach ($subscription->pullDomainEvents() as $event) {
             $this->events->dispatch($event);
         }
+        $this->featureResolver->invalidateCacheForTenant($subscription->tenantId()->value());
     }
 
     public function syncSubscriptionFromStripe(SyncStripeSubscriptionCommand $command): Subscription
@@ -109,6 +113,7 @@ final readonly class BillingService
         foreach ($subscription->pullDomainEvents() as $event) {
             $this->events->dispatch($event);
         }
+        $this->featureResolver->invalidateCacheForTenant($subscription->tenantId()->value());
         return $subscription;
     }
 }

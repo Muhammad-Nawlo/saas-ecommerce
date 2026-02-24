@@ -20,6 +20,8 @@ use App\Modules\Catalog\Domain\Repositories\ProductRepository;
 use App\Modules\Catalog\Domain\ValueObjects\ProductId;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
 use App\Modules\Shared\Domain\Exceptions\InvalidValueObject;
+use App\Modules\Shared\Domain\Exceptions\NoActiveSubscriptionException;
+use App\Modules\Shared\Domain\Exceptions\PlanLimitExceededException;
 use App\Modules\Shared\Domain\ValueObjects\Slug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,7 +77,13 @@ final class ProductController
             priceMinorUnits: (int) $request->validated('price_minor_units'),
             currency: $request->validated('currency')
         );
-        ($this->createProductHandler)($command);
+        try {
+            ($this->createProductHandler)($command);
+        } catch (PlanLimitExceededException $e) {
+            return new JsonResponse(['message' => $e->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (NoActiveSubscriptionException $e) {
+            return new JsonResponse(['message' => $e->getMessage()], Response::HTTP_FORBIDDEN);
+        }
         $product = $this->productRepository->findBySlug(
             Slug::fromString($request->validated('slug'))
         );

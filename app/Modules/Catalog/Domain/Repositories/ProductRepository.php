@@ -21,5 +21,7 @@ interface ProductRepository
      */
     public function listForCurrentTenant(): array;
 
+    public function countForCurrentTenant(): int;
+
     public function delete(Product $product): void;
 }

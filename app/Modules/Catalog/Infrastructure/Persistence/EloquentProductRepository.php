@@ -79,6 +79,13 @@ final class EloquentProductRepository implements ProductRepository
         return $products;
     }
 
+    public function countForCurrentTenant(): int
+    {
+        $modelClass = self::MODEL_CLASS;
+        $tenantId = $this->currentTenantId();
+        return $modelClass::forTenant($tenantId)->count();
+    }
+
     public function delete(Product $product): void
     {
         $this->transactionManager->run(function () use ($product): void {

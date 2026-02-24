@@ -10,6 +10,7 @@ use App\Modules\Catalog\Domain\Repositories\ProductRepository;
 use App\Modules\Catalog\Domain\ValueObjects\ProductDescription;
 use App\Modules\Catalog\Domain\ValueObjects\ProductId;
 use App\Modules\Catalog\Domain\ValueObjects\ProductName;
+use App\Modules\Shared\Domain\Exceptions\PlanLimitExceededException;
 use App\Modules\Shared\Domain\ValueObjects\Money;
 use App\Modules\Shared\Domain\ValueObjects\Slug;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
@@ -24,6 +25,14 @@ final readonly class CreateProductHandler
 
     public function __invoke(CreateProductCommand $command): void
     {
+        $limit = tenant_limit('products_limit');
+        if ($limit !== null) {
+            $currentCount = $this->productRepository->countForCurrentTenant();
+            if ($currentCount >= $limit) {
+                throw PlanLimitExceededException::forFeature('products_limit', $limit);
+            }
+        }
+
         $this->transactionManager->run(function () use ($command): void {
             $productId = ProductId::generate();
             $tenantId = $command->tenantIdVo();
