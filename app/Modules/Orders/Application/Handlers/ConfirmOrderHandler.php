@@ -8,38 +8,49 @@ use App\Modules\Orders\Application\Commands\ConfirmOrderCommand;
 use App\Modules\Orders\Application\Services\InventoryService;
 use App\Modules\Orders\Domain\Repositories\OrderRepository;
 use App\Modules\Orders\Domain\ValueObjects\OrderId;
+use App\Modules\Orders\Infrastructure\Persistence\OrderModel;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
+use App\Services\Inventory\InventoryAllocationService;
 
 final readonly class ConfirmOrderHandler
 {
     public function __construct(
         private OrderRepository $orderRepository,
         private InventoryService $inventoryService,
-        private TransactionManager $transactionManager
+        private TransactionManager $transactionManager,
+        private InventoryAllocationService $allocationService,
     ) {
     }
 
     public function __invoke(ConfirmOrderCommand $command): void
     {
-        $this->transactionManager->run(function () use ($command): void {
+        $useMultiLocation = function_exists('tenant_feature') && (bool) tenant_feature('multi_location_inventory');
+        $this->transactionManager->run(function () use ($command, $useMultiLocation): void {
             $orderId = OrderId::fromString($command->orderId);
             $order = $this->orderRepository->findById($orderId);
             if ($order === null) {
                 throw new DomainException('Order not found');
             }
-            foreach ($order->items() as $item) {
-                $productId = $item->productId()->value();
-                $required = $item->quantity();
-                $available = $this->inventoryService->getAvailableQuantity($productId);
-                if ($available < $required) {
-                    throw new DomainException(
-                        sprintf('Insufficient stock for product %s: required %d, available %d', $productId, $required, $available)
-                    );
+            if ($useMultiLocation) {
+                $orderModel = OrderModel::with('items')->find($command->orderId);
+                if ($orderModel !== null) {
+                    $this->allocationService->confirmReservation($orderModel);
                 }
-            }
-            foreach ($order->items() as $item) {
-                $this->inventoryService->reserve($item->productId()->value(), $item->quantity());
+            } else {
+                foreach ($order->items() as $item) {
+                    $productId = $item->productId()->value();
+                    $required = $item->quantity();
+                    $available = $this->inventoryService->getAvailableQuantity($productId);
+                    if ($available < $required) {
+                        throw new DomainException(
+                            sprintf('Insufficient stock for product %s: required %d, available %d', $productId, $required, $available)
+                        );
+                    }
+                }
+                foreach ($order->items() as $item) {
+                    $this->inventoryService->reserve($item->productId()->value(), $item->quantity());
+                }
             }
             $order->confirm();
             $this->orderRepository->save($order);

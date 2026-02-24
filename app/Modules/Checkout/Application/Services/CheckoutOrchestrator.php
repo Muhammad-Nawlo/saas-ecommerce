@@ -7,14 +7,15 @@ namespace App\Modules\Checkout\Application\Services;
 use App\Modules\Checkout\Application\Contracts\CartService;
 use App\Modules\Checkout\Application\Contracts\InventoryService;
 use App\Modules\Checkout\Application\Contracts\OrderService;
-use App\Modules\Checkout\Application\Contracts\PaymentService;
 use App\Modules\Checkout\Application\DTOs\CheckoutResponseDTO;
 use App\Modules\Checkout\Application\Exceptions\CheckoutFailedException;
 use App\Modules\Checkout\Application\Exceptions\EmptyCartException;
 use App\Modules\Checkout\Application\Exceptions\PaymentInitializationException;
 use App\Modules\Checkout\Application\Exceptions\StockValidationException;
+use App\Modules\Orders\Infrastructure\Persistence\OrderModel;
 use App\Modules\Shared\Domain\ValueObjects\Money;
 use App\Modules\Shared\Infrastructure\Persistence\TransactionManager;
+use App\Services\Inventory\InventoryAllocationService;
 use Throwable;
 
 final readonly class CheckoutOrchestrator
@@ -24,7 +25,8 @@ final readonly class CheckoutOrchestrator
         private InventoryService $inventoryService,
         private OrderService $orderService,
         private PaymentService $paymentService,
-        private TransactionManager $transactionManager
+        private TransactionManager $transactionManager,
+        private InventoryAllocationService $allocationService,
     ) {
     }
 
@@ -44,14 +46,18 @@ final readonly class CheckoutOrchestrator
         $itemsForStock = $cart->itemsForStock();
         $this->inventoryService->validateStock($itemsForStock);
 
+        $useMultiLocation = function_exists('tenant_feature') && (bool) tenant_feature('multi_location_inventory');
         $reserved = false;
+        $orderIdForRelease = null;
         try {
-            $this->transactionManager->run(function () use ($itemsForStock): void {
-                $this->inventoryService->reserveStock($itemsForStock);
-            });
-            $reserved = true;
+            if (!$useMultiLocation) {
+                $this->transactionManager->run(function () use ($itemsForStock): void {
+                    $this->inventoryService->reserveStock($itemsForStock);
+                });
+                $reserved = true;
+            }
 
-            return $this->transactionManager->run(function () use ($command, $cart): CheckoutResponseDTO {
+            $result = $this->transactionManager->run(function () use ($command, $cart, $useMultiLocation, &$orderIdForRelease): CheckoutResponseDTO {
                 $cartData = [
                     'tenant_id' => $cart->tenantId,
                     'customer_email' => $cart->customerEmail,
@@ -59,6 +65,14 @@ final readonly class CheckoutOrchestrator
                     'customer_id' => $command->customerId,
                 ];
                 $orderId = $this->orderService->createOrderFromCart($cartData);
+                $orderIdForRelease = $orderId;
+
+                if ($useMultiLocation) {
+                    $order = OrderModel::with('items')->find($orderId);
+                    if ($order !== null) {
+                        $this->allocationService->allocateStock($order);
+                    }
+                }
 
                 $amount = Money::fromMinorUnits($cart->totalAmountMinorUnits, $cart->currency);
                 $paymentResult = $this->paymentService->createPayment(
@@ -77,16 +91,35 @@ final readonly class CheckoutOrchestrator
                     currency: $cart->currency
                 );
             });
+            return $result;
         } catch (StockValidationException $e) {
             throw $e;
         } catch (PaymentInitializationException $e) {
             if ($reserved) {
                 $this->inventoryService->releaseStock($itemsForStock);
             }
+            if ($useMultiLocation && $orderIdForRelease !== null) {
+                $order = OrderModel::with('items')->find($orderIdForRelease);
+                if ($order !== null) {
+                    try {
+                        $this->allocationService->releaseReservation($order);
+                    } catch (Throwable) {
+                    }
+                }
+            }
             throw $e;
         } catch (Throwable $e) {
             if ($reserved) {
                 $this->inventoryService->releaseStock($itemsForStock);
+            }
+            if ($useMultiLocation && $orderIdForRelease !== null) {
+                $order = OrderModel::with('items')->find($orderIdForRelease);
+                if ($order !== null) {
+                    try {
+                        $this->allocationService->releaseReservation($order);
+                    } catch (Throwable) {
+                    }
+                }
             }
             throw CheckoutFailedException::because($e->getMessage());
         }

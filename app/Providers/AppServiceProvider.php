@@ -23,8 +23,10 @@ use App\Observers\SubscriptionAuditObserver;
 use App\Observers\TenantAuditObserver;
 use App\Observers\UserAuditObserver;
 use App\Models\Customer\Customer;
+use App\Models\Inventory\InventoryLocation;
 use App\Models\Invoice\Invoice;
 use App\Policies\CustomerIdentityPolicy;
+use App\Policies\InventoryLocationPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\InventoryPolicy;
@@ -53,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(CustomerSummaryModel::class, CustomerPolicy::class);
         Gate::policy(Customer::class, CustomerIdentityPolicy::class);
         Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(InventoryLocation::class, InventoryLocationPolicy::class);
         Gate::policy(StockItemModel::class, InventoryPolicy::class);
 
         Gate::policy(Plan::class, PlanPolicy::class);
