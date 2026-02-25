@@ -15,6 +15,8 @@ use App\Services\Financial\OrderPaymentService;
 use App\Services\Financial\PaymentSnapshotService;
 use App\Services\Promotion\RecordPromotionUsageService;
 use App\Models\Financial\FinancialOrder;
+use App\Support\Instrumentation;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -22,10 +24,11 @@ use Illuminate\Support\Facades\Log;
  * After operational payment succeeds: sync financial order, lock, mark paid, fill payment snapshot.
  * Dispatches OrderPaid (financial) which triggers invoice and financial_transaction creation.
  *
- * Idempotent: if financial order already exists and is paid, skips.
+ * Idempotent: payment_id-based idempotency key prevents double processing on duplicate events.
  */
 final class SyncFinancialOrderOnPaymentSucceededListener
 {
+    private const IDEMPOTENCY_TTL_SECONDS = 86400;
     public function __construct(
         private PaymentRepository $paymentRepository,
         private FinancialOrderSyncService $syncService,
@@ -39,6 +42,12 @@ final class SyncFinancialOrderOnPaymentSucceededListener
 
     public function handle(PaymentSucceeded $event): void
     {
+        $paymentId = $event->paymentId->value();
+        $idempotencyKey = 'payment_confirmed:' . $paymentId;
+        if (Cache::has($idempotencyKey)) {
+            return;
+        }
+
         $orderId = $event->orderId;
         $order = OrderModel::with('items')->find($orderId);
         if ($order === null) {
@@ -46,17 +55,20 @@ final class SyncFinancialOrderOnPaymentSucceededListener
             return;
         }
 
-        $payment = $this->paymentRepository->findById(PaymentId::fromString($event->paymentId->value()));
+        $payment = $this->paymentRepository->findById(PaymentId::fromString($paymentId));
         $providerReference = $payment !== null ? ($payment->providerPaymentId() ?? '') : '';
         $tenantId = $order->tenant_id ?? (string) tenant('id');
 
-        DB::transaction(function () use ($order, $providerReference, $payment, $tenantId): void {
+        DB::transaction(function () use ($order, $providerReference, $payment, $tenantId, $paymentId): void {
             $existing = FinancialOrder::where('operational_order_id', $order->id)->first();
             if ($existing !== null && $existing->status === FinancialOrder::STATUS_PAID) {
                 return;
             }
 
             $financialOrder = $this->syncService->syncFromOperationalOrder($order);
+            if ($existing === null) {
+                Instrumentation::orderCreated($tenantId, $order->id, $financialOrder->id);
+            }
             if ($financialOrder->status === FinancialOrder::STATUS_PAID) {
                 return;
             }
@@ -96,6 +108,8 @@ final class SyncFinancialOrderOnPaymentSucceededListener
                 ['status' => 'paid'],
                 ['payment_id' => $payment?->id()->value(), 'order_id' => $order->id],
             );
+            Instrumentation::paymentConfirmed($tenantId, $paymentId, $order->id);
         });
+        Cache::put('payment_confirmed:' . $paymentId, true, self::IDEMPOTENCY_TTL_SECONDS);
     }
 }

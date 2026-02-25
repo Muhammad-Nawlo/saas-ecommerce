@@ -20,11 +20,11 @@ return [
     'prefix' => env('HORIZON_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_horizon:'),
     'middleware' => ['web'],
     'waits' => [
+        'redis:financial' => 30,
         'redis:default' => 60,
-        'redis:financial' => 90,
+        'redis:billing' => 90,
         'redis:audit' => 120,
         'redis:low' => 120,
-        'redis:billing' => 90,
     ],
     'trim' => [
         'recent' => 60,
@@ -75,8 +75,8 @@ return [
             'maxProcesses' => 1,
             'minProcesses' => 0,
             'memory' => 128,
-            'tries' => 3,
-            'timeout' => 120,
+            'tries' => 2,
+            'timeout' => 90,
         ],
         'supervisor-billing' => [
             'connection' => 'redis',
@@ -102,12 +102,12 @@ return [
 
     'environments' => [
         'production' => [
+            'supervisor-financial' => ['maxProcesses' => 2],
             'supervisor-default' => [
                 'maxProcesses' => 10,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
-            'supervisor-financial' => ['maxProcesses' => 2],
             'supervisor-audit' => ['maxProcesses' => 2],
             'supervisor-low' => ['maxProcesses' => 2],
             'supervisor-billing' => ['maxProcesses' => 2],

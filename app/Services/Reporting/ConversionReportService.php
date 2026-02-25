@@ -18,7 +18,7 @@ final readonly class ConversionReportService
     public function ordersToday(?string $tenantId = null): int
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:orders_today:{$tenantId}";
+        $key = tenant_cache_key('report:orders_today', $tenantId);
         return (int) Cache::remember($key, self::CACHE_TTL, function () use ($tenantId): int {
             return FinancialOrder::where('tenant_id', $tenantId)
                 ->where('status', FinancialOrder::STATUS_PAID)
@@ -30,7 +30,7 @@ final readonly class ConversionReportService
     public function conversionRateLastDays(int $days, ?string $tenantId = null): float
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:conversion:{$tenantId}:{$days}";
+        $key = tenant_cache_key("report:conversion:{$days}", $tenantId);
         return (float) Cache::remember($key, self::CACHE_TTL, function () use ($tenantId, $days): float {
             $created = OrderModel::where('tenant_id', $tenantId)
                 ->where('created_at', '>=', now()->subDays($days))
@@ -49,7 +49,7 @@ final readonly class ConversionReportService
     public function averageOrderValueLastDays(int $days, ?string $tenantId = null): int
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:aov:{$tenantId}:{$days}";
+        $key = tenant_cache_key("report:aov:{$days}", $tenantId);
         return (int) Cache::remember($key, self::CACHE_TTL, function () use ($tenantId, $days): int {
             $count = FinancialOrder::where('tenant_id', $tenantId)
                 ->where('status', FinancialOrder::STATUS_PAID)

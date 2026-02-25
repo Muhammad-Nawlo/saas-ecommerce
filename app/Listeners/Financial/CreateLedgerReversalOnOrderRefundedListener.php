@@ -6,7 +6,9 @@ namespace App\Listeners\Financial;
 
 use App\Events\Financial\OrderRefunded;
 use App\Models\Ledger\LedgerAccount;
+use App\Support\Instrumentation;
 use App\Services\Ledger\LedgerService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -19,12 +21,22 @@ final class CreateLedgerReversalOnOrderRefundedListener
     ) {
     }
 
+    private const IDEMPOTENCY_TTL_SECONDS = 86400;
+
     public function handle(OrderRefunded $event): void
     {
         $order = $event->order;
         $tenantId = $order->tenant_id;
         $refundCents = $event->amountCents;
         if ($tenantId === null || $tenantId === '' || $refundCents <= 0) {
+            return;
+        }
+
+        $idempotencyKey = tenant_cache_key(
+            sprintf('refund_ledger:%s:%d:%s', $order->id, $refundCents, $event->providerReference ?? ''),
+            (string) $tenantId
+        );
+        if (Cache::has($idempotencyKey)) {
             return;
         }
 
@@ -64,6 +76,8 @@ final class CreateLedgerReversalOnOrderRefundedListener
             'Refund: ' . $order->order_number,
             $entries
         );
+        Cache::put($idempotencyKey, true, self::IDEMPOTENCY_TTL_SECONDS);
+        Instrumentation::refundProcessed((string) $tenantId, $order->id, $refundCents);
         Log::channel('stack')->info('ledger_transaction_created', [
             'tenant_id' => $tenantId,
             'order_id' => $order->operational_order_id,

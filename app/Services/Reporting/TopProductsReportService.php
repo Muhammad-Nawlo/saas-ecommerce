@@ -20,7 +20,7 @@ final readonly class TopProductsReportService
     public function topProducts(int $limit = 5, int $days = 30, ?string $tenantId = null): array
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:top_products:{$tenantId}:{$limit}:{$days}";
+        $key = tenant_cache_key("report:top_products:{$limit}:{$days}", $tenantId);
         return Cache::remember($key, self::CACHE_TTL, function () use ($tenantId, $limit, $days): array {
             $orderIds = \App\Models\Financial\FinancialOrder::where('tenant_id', $tenantId)
                 ->where('status', \App\Models\Financial\FinancialOrder::STATUS_PAID)

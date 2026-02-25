@@ -40,7 +40,8 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "files": [
-            "app/Helpers/tenant_features.php"
+            "app/Helpers/tenant_features.php",
+            "app/Helpers/tenant_cache.php"
         ]
     },
     "autoload-dev": {

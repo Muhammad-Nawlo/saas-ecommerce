@@ -74,7 +74,7 @@ final class CurrencyService
     public function getSettings(?string $tenantId = null): ?TenantCurrencySetting
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = 'tenant_currency_settings:' . $tenantId;
+        $key = tenant_cache_key('currency_settings', $tenantId);
         $ttl = (int) config('currency.settings_cache_ttl', 300);
         return Cache::remember($key, $ttl, function () use ($tenantId): ?TenantCurrencySetting {
             return TenantCurrencySetting::where('tenant_id', $tenantId)->with('baseCurrency')->first();

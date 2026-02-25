@@ -55,6 +55,11 @@ class FinancialOrderResource extends Resource
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with('items');
+    }
+
     public static function table(Table $table): Table
     {
         return $table

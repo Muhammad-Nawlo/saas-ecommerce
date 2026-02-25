@@ -17,7 +17,7 @@ final readonly class TaxReportService
     public function taxCollectedLastDays(int $days, ?string $tenantId = null): int
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:tax_last_{$days}d:{$tenantId}";
+        $key = tenant_cache_key("report:tax_last_{$days}d", $tenantId);
         return (int) Cache::remember($key, self::CACHE_TTL, function () use ($tenantId, $days): int {
             return (int) FinancialOrder::where('tenant_id', $tenantId)
                 ->where('status', FinancialOrder::STATUS_PAID)

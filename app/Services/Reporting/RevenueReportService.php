@@ -17,7 +17,7 @@ final readonly class RevenueReportService
     public function revenueToday(?string $tenantId = null): int
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:revenue_today:{$tenantId}";
+        $key = tenant_cache_key('report:revenue_today', $tenantId);
         return (int) Cache::remember($key, self::CACHE_TTL, function () use ($tenantId): int {
             return (int) FinancialOrder::where('tenant_id', $tenantId)
                 ->where('status', FinancialOrder::STATUS_PAID)
@@ -29,7 +29,7 @@ final readonly class RevenueReportService
     public function revenueLastDays(int $days, ?string $tenantId = null): int
     {
         $tenantId = $tenantId ?? (string) tenant('id');
-        $key = "report:revenue_last_{$days}d:{$tenantId}";
+        $key = tenant_cache_key("report:revenue_last_{$days}d", $tenantId);
         return (int) Cache::remember($key, self::CACHE_TTL, function () use ($tenantId, $days): int {
             return (int) FinancialOrder::where('tenant_id', $tenantId)
                 ->where('status', FinancialOrder::STATUS_PAID)

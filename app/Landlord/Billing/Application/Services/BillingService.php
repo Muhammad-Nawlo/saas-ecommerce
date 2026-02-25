@@ -147,6 +147,7 @@ final readonly class BillingService
         $subId = $subscription->id()->value();
         $model = SubscriptionModel::on(config('tenancy.database.central_connection'))->find($subId);
         if ($planChanged) {
+            \App\Support\Instrumentation::subscriptionChanged($tenantId, 'plan_changed', $subId);
             $this->auditLogger->logStructuredLandlordAction(
                 'subscription_plan_changed',
                 "Subscription plan changed for tenant {$tenantId}",
@@ -159,6 +160,8 @@ final readonly class BillingService
         }
         if ($beforeStatus !== $subscription->status()->value()) {
             $newStatus = $subscription->status()->value();
+            $subEvent = $newStatus === 'canceled' || $newStatus === 'cancelled' ? 'cancelled' : ($newStatus === 'past_due' ? 'payment_failure' : 'status_changed');
+            \App\Support\Instrumentation::subscriptionChanged($tenantId, $subEvent, $subId);
             $eventType = $newStatus === 'canceled' || $newStatus === 'cancelled' ? 'subscription_cancelled'
                 : ($newStatus === 'past_due' ? 'subscription_payment_failure' : 'subscription_status_changed');
             $this->auditLogger->logStructuredLandlordAction(
@@ -172,6 +175,7 @@ final readonly class BillingService
             );
         }
         if ($subscription->currentPeriodEnd()->getTimestamp() > $beforePeriodEnd) {
+            \App\Support\Instrumentation::subscriptionChanged($tenantId, 'renewed', $subId);
             $this->auditLogger->logStructuredLandlordAction(
                 'subscription_renewed',
                 "Subscription renewed for tenant {$tenantId}",

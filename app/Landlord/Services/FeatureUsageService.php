@@ -33,7 +33,7 @@ final class FeatureUsageService
     public function productsUsage(): array
     {
         $tenantId = (string) tenant('id');
-        $key = "feature_usage:products:{$tenantId}";
+        $key = tenant_cache_key('feature_usage:products', $tenantId);
         $used = (int) Cache::remember($key, self::CACHE_TTL, fn () => ProductModel::count());
         $limit = null;
         try {
@@ -55,7 +55,7 @@ final class FeatureUsageService
     public function inventoryLocationsUsage(): array
     {
         $tenantId = (string) tenant('id');
-        $key = "feature_usage:inventory_locations:{$tenantId}";
+        $key = tenant_cache_key('feature_usage:inventory_locations', $tenantId);
         $used = (int) Cache::remember($key, self::CACHE_TTL, function (): int {
             if (!\Schema::hasTable('inventory_locations')) {
                 return 0;

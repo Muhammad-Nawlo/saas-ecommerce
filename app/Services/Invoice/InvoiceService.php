@@ -140,6 +140,7 @@ final class InvoiceService
             ['status' => Invoice::STATUS_ISSUED],
             ['ip' => request()->ip()],
         );
+        \App\Support\Instrumentation::invoiceIssued($invoice->tenant_id, $invoice->id, $invoice->order_id ?? '');
         Log::info('Invoice issued', [
             'tenant_id' => $invoice->tenant_id,
             'invoice_id' => $invoice->id,
