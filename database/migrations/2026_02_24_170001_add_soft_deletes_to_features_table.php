@@ -11,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('features', function (Blueprint $table): void {
+        Schema::connection($conn)->table('features', function (Blueprint $table) use ($conn): void {
             if (!Schema::connection($conn)->hasColumn('features', 'deleted_at')) {
                 $table->softDeletes();
             }
@@ -21,7 +21,7 @@ return new class extends Migration
     public function down(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('features', function (Blueprint $table): void {
+        Schema::connection($conn)->table('features', function (Blueprint $table) use ($conn): void {
             $table->dropSoftDeletes();
         });
     }

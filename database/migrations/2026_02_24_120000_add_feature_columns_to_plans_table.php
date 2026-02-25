@@ -11,8 +11,8 @@ return new class extends Migration
     public function up(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('plans', function (Blueprint $table): void {
-            if (!Schema::connection($conn)->hasColumn('plans', 'code')) {
+        Schema::connection($conn)->table('plans', function (Blueprint $table) use ($conn): void {
+            if (! Schema::connection($conn)->hasColumn('plans', 'code')) {
                 $table->string('code', 50)->nullable()->unique()->after('name');
             }
             if (!Schema::connection($conn)->hasColumn('plans', 'price')) {
@@ -27,7 +27,7 @@ return new class extends Migration
     public function down(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('plans', function (Blueprint $table): void {
+        Schema::connection($conn)->table('plans', function (Blueprint $table) use ($conn): void {
             $table->dropColumn(['code', 'price']);
         });
     }

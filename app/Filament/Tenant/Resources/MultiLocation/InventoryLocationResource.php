@@ -17,9 +17,10 @@ class InventoryLocationResource extends Resource
 {
     protected static ?string $model = InventoryLocation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-map-pin';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 2;
 

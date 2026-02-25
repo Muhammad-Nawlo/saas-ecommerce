@@ -16,9 +16,10 @@ class InventoryStockResource extends Resource
 {
     protected static ?string $model = InventoryLocationStock::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cube';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cube';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 3;
 

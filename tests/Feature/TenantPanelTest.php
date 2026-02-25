@@ -8,24 +8,13 @@ use App\Landlord\Models\Tenant;
 use App\Models\User;
 use App\Modules\Catalog\Infrastructure\Persistence\ProductModel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 
 uses(RefreshDatabase::class);
 
 /**
  * Ensure tenant DB exists and migrations are run. Call before tenancy()->initialize($tenant).
+ * Use global createAndMigrateTenant() from Pest.php (TenantTestHelper).
  */
-function createAndMigrateTenant(array $attributes = []): Tenant
-{
-    $tenant = Tenant::create(array_merge(['name' => 'Test Tenant', 'data' => []], $attributes));
-    $tenant->run(function (): void {
-        Artisan::call('migrate', [
-            '--path' => database_path('migrations/tenant'),
-            '--force' => true,
-        ]);
-    });
-    return $tenant;
-}
 
 test('tenant can access dashboard when tenant context and active', function (): void {
     $tenant = createAndMigrateTenant(['name' => 'Test Store']);

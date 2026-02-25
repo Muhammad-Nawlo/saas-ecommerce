@@ -6,29 +6,13 @@ namespace Tests\Feature;
 
 use App\Constants\TenantPermissions;
 use App\Enums\TenantRole;
-use App\Landlord\Models\Tenant;
 use App\Models\User;
-use Database\Seeders\TenantRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 
 uses(RefreshDatabase::class);
 
-function createAndMigrateTenant(array $attributes = []): Tenant
-{
-    $tenant = Tenant::create(array_merge(['name' => 'Test Tenant', 'data' => []], $attributes));
-    $tenant->run(function (): void {
-        Artisan::call('migrate', [
-            '--path' => database_path('migrations/tenant'),
-            '--force' => true,
-        ]);
-        (new TenantRoleSeeder())->run();
-    });
-    return $tenant;
-}
-
 test('owner can create product', function (): void {
-    $tenant = createAndMigrateTenant();
+    $tenant = createAndMigrateTenant([], true);
     tenancy()->initialize($tenant);
     $user = User::factory()->create();
     $user->assignRole(TenantRole::Owner->value);
@@ -38,7 +22,7 @@ test('owner can create product', function (): void {
 })->group('rbac');
 
 test('staff cannot create product', function (): void {
-    $tenant = createAndMigrateTenant();
+    $tenant = createAndMigrateTenant([], true);
     tenancy()->initialize($tenant);
     $user = User::factory()->create();
     $user->assignRole(TenantRole::Staff->value);
@@ -48,7 +32,7 @@ test('staff cannot create product', function (): void {
 })->group('rbac');
 
 test('viewer cannot edit order', function (): void {
-    $tenant = createAndMigrateTenant();
+    $tenant = createAndMigrateTenant([], true);
     tenancy()->initialize($tenant);
     $user = User::factory()->create();
     $user->assignRole(TenantRole::Viewer->value);
@@ -58,7 +42,7 @@ test('viewer cannot edit order', function (): void {
 })->group('rbac');
 
 test('role assignment works', function (): void {
-    $tenant = createAndMigrateTenant();
+    $tenant = createAndMigrateTenant([], true);
     tenancy()->initialize($tenant);
     $user = User::factory()->create();
     $user->assignRole(TenantRole::Manager->value);
@@ -69,6 +53,9 @@ test('role assignment works', function (): void {
 })->group('rbac');
 
 test('super_admin can access landlord admin', function (): void {
+    if (! class_exists(\Filament\Facades\Filament::class)) {
+        $this->markTestSkipped('Filament not loaded in testing (backend-only mode).');
+    }
     (new \Database\Seeders\LandlordRoleSeeder())->run();
     $user = User::factory()->create();
     $user->assignRole('super_admin');

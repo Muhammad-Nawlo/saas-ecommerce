@@ -8,18 +8,11 @@ use App\Modules\Inventory\Providers\InventoryServiceProvider;
 use App\Modules\Orders\Providers\OrdersServiceProvider;
 use App\Modules\Payments\Providers\PaymentsServiceProvider;
 
-return [
+$providers = [
     App\Providers\AppServiceProvider::class,
     App\Providers\EventServiceProvider::class,
-    \App\Providers\Filament\LandlordPanelProvider::class,
-    \App\Providers\Filament\TenantPanelProvider::class,
     App\Providers\TenancyServiceProvider::class,
-
-
-    // Landlord
     BillingServiceProvider::class,
-
-    //SAAS Providers
     CatalogServiceProvider::class,
     CartServiceProvider::class,
     CheckoutServiceProvider::class,
@@ -27,3 +20,11 @@ return [
     OrdersServiceProvider::class,
     PaymentsServiceProvider::class,
 ];
+
+// Skip Filament in testing to avoid UI layer coupling with backend/domain tests.
+if ((getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? '')) !== 'testing') {
+    $providers[] = \App\Providers\Filament\LandlordPanelProvider::class;
+    $providers[] = \App\Providers\Filament\TenantPanelProvider::class;
+}
+
+return $providers;

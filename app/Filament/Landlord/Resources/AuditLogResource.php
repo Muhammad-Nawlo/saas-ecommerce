@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Landlord\Resources;
 
 use App\Landlord\Models\LandlordAuditLog;
+use Filament\Infolists\Components\KeyValueEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,9 +20,11 @@ class AuditLogResource extends Resource
 {
     protected static ?string $model = LandlordAuditLog::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    /** @var string|\BackedEnum|null */
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Platform';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Platform';
 
     protected static ?int $navigationSort = 20;
 
@@ -91,6 +96,22 @@ class AuditLogResource extends Resource
             'index' => \App\Filament\Landlord\Resources\AuditLogResource\Pages\ListAuditLogs::route('/'),
             'view' => \App\Filament\Landlord\Resources\AuditLogResource\Pages\ViewAuditLog::route('/{record}'),
         ];
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            TextEntry::make('created_at')->dateTime()->label('When'),
+            TextEntry::make('event_type')->label('Event'),
+            TextEntry::make('description')->label('Description')->columnSpanFull(),
+            TextEntry::make('model_type')->label('Model type'),
+            TextEntry::make('model_id')->label('Model ID'),
+            TextEntry::make('tenant_id')->label('Tenant ID'),
+            TextEntry::make('user.name')->label('User')->placeholder('—'),
+            TextEntry::make('ip_address')->label('IP')->placeholder('—'),
+            TextEntry::make('user_agent')->label('User agent')->placeholder('—')->columnSpanFull(),
+            KeyValueEntry::make('properties')->label('Properties')->columnSpanFull(),
+        ]);
     }
 
     public static function canCreate(): bool

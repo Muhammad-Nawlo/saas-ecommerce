@@ -14,9 +14,10 @@ class FinancialTransactionResource extends Resource
 {
     protected static ?string $model = FinancialTransaction::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-path';
 
-    protected static ?string $navigationGroup = 'Financial';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Financial';
 
     public static function table(Table $table): Table
     {

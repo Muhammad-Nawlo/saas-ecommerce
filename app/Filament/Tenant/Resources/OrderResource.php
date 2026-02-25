@@ -17,9 +17,10 @@ class OrderResource extends Resource
 {
     protected static ?string $model = OrderModel::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';
 
-    protected static ?string $navigationGroup = 'Orders';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Orders';
 
     protected static ?int $navigationSort = 1;
 

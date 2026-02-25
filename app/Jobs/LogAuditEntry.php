@@ -18,9 +18,6 @@ class LogAuditEntry implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** @var string */
-    public string $queue = 'audit';
-
     /** @var int */
     public int $tries = 3;
 
@@ -28,7 +25,7 @@ class LogAuditEntry implements ShouldQueue
     public array $backoff = [5, 30, 60];
 
     public function __construct(
-        public string $connection,
+        public string $dbConnection,
         public string $table,
         public array $attributes,
         public ?string $tenantId = null,
@@ -37,7 +34,7 @@ class LogAuditEntry implements ShouldQueue
     public function handle(): void
     {
         $log = new AuditLog($this->attributes);
-        $log->setConnection($this->connection);
+        $log->setConnection($this->dbConnection);
         $log->setTable($this->table);
         $log->save();
     }

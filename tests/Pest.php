@@ -2,6 +2,22 @@
 
 /*
 |--------------------------------------------------------------------------
+| Test bootstrap: ensure no cached config/services override bootstrap/providers
+|--------------------------------------------------------------------------
+| When config (or services) is cached, Laravel skips merging bootstrap/providers.php.
+| That would register Filament in tests and break backend-only tests. Clear cache
+| for the test run so APP_ENV=testing and bootstrap/providers.php are respected.
+*/
+$testCacheDir = dirname(__DIR__) . '/bootstrap/cache';
+foreach (['config.php', 'services.php'] as $cacheFile) {
+    $path = $testCacheDir . '/' . $cacheFile;
+    if (file_exists($path)) {
+        @unlink($path);
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | Test Case
 |--------------------------------------------------------------------------
 |
@@ -40,6 +56,16 @@ expect()->extend('toBeOne', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+function createAndMigrateTenant(array $attributes = [], bool $withRoleSeeder = false): \App\Landlord\Models\Tenant
+{
+    return \Tests\Support\TenantTestHelper::createAndMigrateTenant($attributes, $withRoleSeeder);
+}
+
+function runCentralMigrations(): void
+{
+    \Tests\Support\TenantTestHelper::runCentralMigrations();
+}
 
 function something()
 {

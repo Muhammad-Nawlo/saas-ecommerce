@@ -9,11 +9,12 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class DomainSettingsPage extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-globe-alt';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-globe-alt';
 
     protected static string $view = 'filament.tenant.pages.domain-settings-page';
 
-    protected static ?string $navigationGroup = 'Settings';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Settings';
 
     protected static ?int $navigationSort = 2;
 

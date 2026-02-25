@@ -11,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('plan_features', function (Blueprint $table): void {
+        Schema::connection($conn)->table('plan_features', function (Blueprint $table) use ($conn): void {
             if (!Schema::connection($conn)->hasColumn('plan_features', 'limit_value')) {
                 $table->integer('limit_value')->nullable()->after('value');
             }
@@ -21,7 +21,7 @@ return new class extends Migration
     public function down(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('plan_features', function (Blueprint $table): void {
+        Schema::connection($conn)->table('plan_features', function (Blueprint $table) use ($conn): void {
             $table->dropColumn('limit_value');
         });
     }

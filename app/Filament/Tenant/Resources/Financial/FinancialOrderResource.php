@@ -19,9 +19,10 @@ class FinancialOrderResource extends Resource
 {
     protected static ?string $model = FinancialOrder::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationGroup = 'Financial';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Financial';
 
     protected static ?string $modelLabel = 'Financial Order';
 

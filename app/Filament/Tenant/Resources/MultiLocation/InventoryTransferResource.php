@@ -17,9 +17,10 @@ class InventoryTransferResource extends Resource
 {
     protected static ?string $model = InventoryTransfer::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-right-left';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-right-left';
 
-    protected static ?string $navigationGroup = 'Inventory';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Inventory';
 
     protected static ?int $navigationSort = 4;
 

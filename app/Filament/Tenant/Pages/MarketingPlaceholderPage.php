@@ -8,11 +8,12 @@ use Illuminate\Contracts\Support\Htmlable;
 
 class MarketingPlaceholderPage extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-megaphone';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
 
     protected static string $view = 'filament.tenant.pages.marketing-placeholder-page';
 
-    protected static ?string $navigationGroup = 'Marketing';
+    /** @var string|\UnitEnum|null */
+    protected static string|\UnitEnum|null $navigationGroup = 'Marketing';
 
     public static function getNavigationLabel(): string
     {

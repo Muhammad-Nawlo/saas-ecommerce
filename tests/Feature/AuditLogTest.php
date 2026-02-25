@@ -17,18 +17,6 @@ use Illuminate\Support\Facades\Artisan;
 
 uses(RefreshDatabase::class);
 
-function createAndMigrateTenant(array $attributes = []): Tenant
-{
-    $tenant = Tenant::create(array_merge(['name' => 'Test Tenant', 'data' => []], $attributes));
-    $tenant->run(function (): void {
-        Artisan::call('migrate', [
-            '--path' => database_path('migrations/tenant'),
-            '--force' => true,
-        ]);
-    });
-    return $tenant;
-}
-
 test('creating product logs event in tenant DB', function (): void {
     $tenant = createAndMigrateTenant();
     tenancy()->initialize($tenant);
@@ -170,10 +158,3 @@ test('tenant logs stored in tenant DB only', function (): void {
 
     expect(TenantAuditLog::query()->count())->toBeGreaterThan(0);
 })->group('audit');
-
-function runCentralMigrations(): void
-{
-    if (!\Illuminate\Support\Facades\Schema::hasTable('landlord_audit_logs')) {
-        Artisan::call('migrate', ['--path' => database_path('migrations'), '--force' => true]);
-    }
-}

@@ -11,7 +11,7 @@ return new class extends Migration
     public function up(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('subscriptions', function (Blueprint $table): void {
+        Schema::connection($conn)->table('subscriptions', function (Blueprint $table) use ($conn): void {
             if (!Schema::connection($conn)->hasColumn('subscriptions', 'starts_at')) {
                 $table->dateTime('starts_at')->nullable()->after('plan_id');
             }
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         $conn = config('tenancy.database.central_connection', config('database.default'));
-        Schema::connection($conn)->table('subscriptions', function (Blueprint $table): void {
+        Schema::connection($conn)->table('subscriptions', function (Blueprint $table) use ($conn): void {
             $table->dropColumn(['starts_at', 'ends_at']);
         });
     }
