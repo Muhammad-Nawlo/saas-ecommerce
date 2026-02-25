@@ -8,8 +8,8 @@ use App\Models\Currency\ExchangeRate;
 use App\Models\Currency\Currency;
 use App\Services\Currency\ExchangeRateService;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,11 +25,11 @@ class ExchangeRateResource extends Resource
 
     protected static ?int $navigationSort = 16;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $baseId = app(\App\Services\Currency\CurrencyService::class)->getTenantBaseCurrency()?->id;
         $currencies = Currency::where('is_active', true)->orderBy('code')->pluck('code', 'id')->toArray();
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Rate')
                     ->schema([

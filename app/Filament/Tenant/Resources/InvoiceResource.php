@@ -9,8 +9,8 @@ use App\Services\Invoice\InvoicePdfGenerator;
 use App\Services\Invoice\InvoiceService;
 use App\Modules\Shared\Domain\ValueObjects\Money;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,9 +26,9 @@ class InvoiceResource extends Resource
 
     protected static ?int $navigationSort = 5;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Invoice')
                     ->schema([

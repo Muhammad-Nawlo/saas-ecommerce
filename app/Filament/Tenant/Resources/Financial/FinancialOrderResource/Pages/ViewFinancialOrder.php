@@ -7,18 +7,18 @@ namespace App\Filament\Tenant\Resources\Financial\FinancialOrderResource\Pages;
 use App\Filament\Tenant\Resources\Financial\FinancialOrderResource;
 use App\Models\Financial\FinancialOrder;
 use Filament\Infolists\Components\KeyValueEntry;
-use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
 
 class ViewFinancialOrder extends ViewRecord
 {
     protected static string $resource = FinancialOrderResource::class;
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
-        return $infolist
+        return $schema
             ->schema([
                 Section::make('Order')
                     ->schema([

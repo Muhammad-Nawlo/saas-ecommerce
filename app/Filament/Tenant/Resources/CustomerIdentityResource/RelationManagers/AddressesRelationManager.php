@@ -6,8 +6,8 @@ namespace App\Filament\Tenant\Resources\CustomerIdentityResource\RelationManager
 
 use App\Models\Customer\CustomerAddress;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -17,9 +17,9 @@ class AddressesRelationManager extends RelationManager
 
     protected static ?string $title = 'Addresses';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Select::make('type')
                     ->options([

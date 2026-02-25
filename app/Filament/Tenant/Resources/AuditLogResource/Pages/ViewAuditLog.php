@@ -7,16 +7,17 @@ namespace App\Filament\Tenant\Resources\AuditLogResource\Pages;
 use App\Filament\Tenant\Resources\AuditLogResource;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Schema;
 
+/** Filament 5: ViewRecord::infolist uses Schema $schema, not Infolist. */
 class ViewAuditLog extends ViewRecord
 {
     protected static string $resource = AuditLogResource::class;
 
-    public function infolist(Infolist $infolist): Infolist
+    public function infolist(Schema $schema): Schema
     {
-        return $infolist
+        return $schema
             ->schema([
                 TextEntry::make('created_at')->dateTime()->label('When'),
                 TextEntry::make('event_type')->label('Event'),

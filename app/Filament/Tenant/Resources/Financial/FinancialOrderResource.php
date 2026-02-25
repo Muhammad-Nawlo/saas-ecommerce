@@ -6,8 +6,8 @@ namespace App\Filament\Tenant\Resources\Financial;
 
 use App\Models\Financial\FinancialOrder;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,9 +28,9 @@ class FinancialOrderResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Financial Orders';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Order')
                     ->schema([
@@ -53,11 +53,6 @@ class FinancialOrderResource extends Resource
                     ])
                     ->columns(2),
             ]);
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()->with('items');
     }
 
     public static function table(Table $table): Table
@@ -129,7 +124,7 @@ class FinancialOrderResource extends Resource
         if ($tenantId === null) {
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
-        return parent::getEloquentQuery()->forTenant((string) $tenantId);
+        return parent::getEloquentQuery()->forTenant((string) $tenantId)->with('items');
     }
 
     public static function canEdit($record): bool

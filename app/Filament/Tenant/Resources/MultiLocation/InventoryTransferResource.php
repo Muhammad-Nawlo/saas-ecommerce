@@ -7,8 +7,8 @@ namespace App\Filament\Tenant\Resources\MultiLocation;
 use App\Models\Inventory\InventoryTransfer;
 use App\Services\Inventory\InventoryTransferService;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +24,7 @@ class InventoryTransferResource extends Resource
 
     protected static ?int $navigationSort = 4;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $tid = tenant('id');
         $locationOptions = $tid
@@ -34,7 +34,7 @@ class InventoryTransferResource extends Resource
             ? \App\Modules\Catalog\Infrastructure\Persistence\ProductModel::forTenant((string) $tid)->orderBy('name')->pluck('name', 'id')->toArray()
             : [];
 
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Transfer')
                     ->schema([

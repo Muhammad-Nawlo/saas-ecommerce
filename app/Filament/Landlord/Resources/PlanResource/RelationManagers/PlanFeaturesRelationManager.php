@@ -6,8 +6,8 @@ namespace App\Filament\Landlord\Resources\PlanResource\RelationManagers;
 
 use App\Landlord\Models\Feature;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,9 +19,9 @@ class PlanFeaturesRelationManager extends RelationManager
 
     protected static ?string $title = 'Plan features';
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Select::make('feature_id')
                     ->label('Feature')

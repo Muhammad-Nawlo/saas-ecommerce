@@ -22,7 +22,8 @@ class CreateTenantsTable extends Migration
 
             $table->string('status')->default('active'); // active | suspended | canceled
 
-            $table->foreignId('plan_id')->nullable()->constrained('plans');
+            $table->uuid('plan_id')->nullable();
+            $table->foreign('plan_id')->references('id')->on('plans')->nullOnDelete();
 
 
             $table->timestamp('trial_ends_at')->nullable();

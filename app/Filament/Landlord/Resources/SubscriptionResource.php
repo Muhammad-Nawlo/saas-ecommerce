@@ -8,8 +8,8 @@ use App\Landlord\Models\Plan;
 use App\Landlord\Models\Subscription;
 use App\Landlord\Models\Tenant;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,9 +26,9 @@ class SubscriptionResource extends Resource
 
     protected static ?int $navigationSort = 0;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Subscription')
                     ->schema([

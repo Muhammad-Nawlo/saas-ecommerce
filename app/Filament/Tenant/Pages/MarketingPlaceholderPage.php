@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Pages;
 
+use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
 class MarketingPlaceholderPage extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
 
-    protected static string $view = 'filament.tenant.pages.marketing-placeholder-page';
+    protected string $view = 'filament.tenant.pages.marketing-placeholder-page';
 
     /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Marketing';

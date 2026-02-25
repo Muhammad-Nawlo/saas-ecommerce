@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Pages;
 
 use App\Constants\TenantPermissions;
+use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
 class DomainSettingsPage extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-globe-alt';
 
-    protected static string $view = 'filament.tenant.pages.domain-settings-page';
+    protected string $view = 'filament.tenant.pages.domain-settings-page';
 
     /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Settings';

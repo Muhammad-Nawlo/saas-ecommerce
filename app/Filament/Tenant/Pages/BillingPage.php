@@ -15,7 +15,7 @@ class BillingPage extends Page
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-credit-card';
 
-    protected static string $view = 'filament.tenant.pages.billing-page';
+    protected string $view = 'filament.tenant.pages.billing-page';
 
     /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Settings';

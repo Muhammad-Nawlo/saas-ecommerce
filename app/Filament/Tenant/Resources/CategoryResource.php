@@ -6,8 +6,8 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Modules\Catalog\Infrastructure\Persistence\CategoryModel;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,14 +25,14 @@ class CategoryResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $tenantId = tenant('id');
         $parentOptions = $tenantId
             ? CategoryModel::forTenant((string) $tenantId)->orderBy('name')->pluck('name', 'id')->toArray()
             : [];
 
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Category details')
                     ->schema([

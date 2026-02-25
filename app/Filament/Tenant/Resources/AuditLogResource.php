@@ -79,8 +79,7 @@ class AuditLogResource extends Resource
                 Tables\Actions\ViewAction::make(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->paginated([10, 25, 50])
-            ->simplePaginate();
+            ->paginated([15, 30, 50]);
     }
 
     public static function getPages(): array
@@ -94,15 +93,5 @@ class AuditLogResource extends Resource
     public static function canCreate(): bool
     {
         return false;
-    }
-
-    public static function getModelLabel(): string
-    {
-        return 'Audit log';
-    }
-
-    public static function getPluralModelLabel(): string
-    {
-        return 'Audit log';
     }
 }

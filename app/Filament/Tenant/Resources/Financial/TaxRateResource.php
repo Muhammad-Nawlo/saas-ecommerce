@@ -6,8 +6,8 @@ namespace App\Filament\Tenant\Resources\Financial;
 
 use App\Models\Financial\TaxRate;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,9 +21,9 @@ class TaxRateResource extends Resource
     /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Financial';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Tax rate')
                     ->schema([

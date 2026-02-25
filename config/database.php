@@ -47,10 +47,10 @@ return [
             'driver' => 'mysql',
             'url' => env('DB_URL'),
             'read' => [
-                'host' => array_filter(explode(',', (string) env('DB_READ_HOST', env('DB_HOST', '127.0.0.1'))) ?: [env('DB_HOST', '127.0.0.1')],
+                'host' => array_filter(explode(',', (string) env('DB_READ_HOST', env('DB_HOST', '127.0.0.1')))) ?: [env('DB_HOST', '127.0.0.1')],
             ],
             'write' => [
-                'host' => array_filter(explode(',', (string) env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1'))) ?: [env('DB_HOST', '127.0.0.1')],
+                'host' => array_filter(explode(',', (string) env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1')))) ?: [env('DB_HOST', '127.0.0.1')],
             ],
             'sticky' => true,
             'port' => env('DB_PORT', '3306'),
@@ -93,10 +93,10 @@ return [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),
             'read' => [
-                'host' => array_filter(explode(',', (string) env('DB_READ_HOST', env('DB_HOST', '127.0.0.1'))) ?: [env('DB_HOST', '127.0.0.1')],
+                'host' => array_filter(explode(',', (string) env('DB_READ_HOST', env('DB_HOST', '127.0.0.1')))) ?: [env('DB_HOST', '127.0.0.1')],
             ],
             'write' => [
-                'host' => array_filter(explode(',', (string) env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1'))) ?: [env('DB_HOST', '127.0.0.1')],
+                'host' => array_filter(explode(',', (string) env('DB_WRITE_HOST', env('DB_HOST', '127.0.0.1')))) ?: [env('DB_HOST', '127.0.0.1')],
             ],
             'sticky' => true,
             'port' => env('DB_PORT', '5432'),

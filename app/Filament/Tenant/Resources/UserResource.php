@@ -7,8 +7,8 @@ namespace App\Filament\Tenant\Resources;
 use App\Constants\TenantPermissions;
 use App\Filament\Tenant\Resources\RoleResource;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,11 +40,11 @@ class UserResource extends Resource
         return tenant('id') !== null && auth()->user()?->can(TenantPermissions::MANAGE_USERS) === true;
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $assignableRoles = RoleResource::assignableRoleNames();
 
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('User')
                     ->schema([

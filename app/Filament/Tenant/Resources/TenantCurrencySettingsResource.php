@@ -7,8 +7,8 @@ namespace App\Filament\Tenant\Resources;
 use App\Models\Currency\TenantCurrencySetting;
 use App\Models\Currency\Currency;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,10 +28,10 @@ class TenantCurrencySettingsResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Currency settings';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
         $currencies = Currency::where('is_active', true)->orderBy('code')->pluck('name', 'id')->toArray();
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Tenant currency')
                     ->schema([

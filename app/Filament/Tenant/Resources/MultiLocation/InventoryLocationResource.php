@@ -7,8 +7,8 @@ namespace App\Filament\Tenant\Resources\MultiLocation;
 use App\Models\Inventory\InventoryLocation;
 use App\Services\Inventory\InventoryLocationService;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,9 +28,9 @@ class InventoryLocationResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Locations';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Location')
                     ->schema([

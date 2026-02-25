@@ -6,8 +6,8 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Models\Customer\Customer;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,9 +31,9 @@ class CustomerIdentityResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Customers';
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Profile')
                     ->schema([

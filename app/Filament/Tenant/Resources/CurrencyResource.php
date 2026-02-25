@@ -7,8 +7,8 @@ namespace App\Filament\Tenant\Resources;
 use App\Models\Currency\Currency;
 use App\Services\Currency\CurrencyService;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 
@@ -23,9 +23,9 @@ class CurrencyResource extends Resource
 
     protected static ?int $navigationSort = 15;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->schema([
                 Forms\Components\Section::make('Currency')
                     ->schema([
