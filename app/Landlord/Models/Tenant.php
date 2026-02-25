@@ -2,6 +2,7 @@
 
 namespace App\Landlord\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
@@ -11,6 +12,7 @@ use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase;
+    use HasFactory;
     use SoftDeletes;
 
     protected $fillable = [
@@ -34,6 +36,11 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     /**
      * Columns that exist on the tenants table; other attributes go to the "data" JSON column.
      */
+    protected static function newFactory(): \Database\Factories\Landlord\TenantFactory
+    {
+        return \Database\Factories\Landlord\TenantFactory::new();
+    }
+
     public static function getCustomColumns(): array
     {
         return [

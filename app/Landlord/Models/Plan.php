@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Landlord\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -21,7 +22,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Plan extends Model
 {
-    use HasUuids, SoftDeletes;
+    use HasFactory;
+    use HasUuids;
+    use SoftDeletes;
 
     protected $connection;
 
@@ -31,6 +34,8 @@ class Plan extends Model
         'name',
         'code',
         'price',
+        'price_amount',
+        'currency',
         'billing_interval',
         'stripe_price_id',
         'is_active',
@@ -45,6 +50,11 @@ class Plan extends Model
     {
         $this->connection = config('tenancy.database.central_connection', config('database.default'));
         parent::__construct($attributes);
+    }
+
+    protected static function newFactory(): \Database\Factories\Landlord\PlanFactory
+    {
+        return \Database\Factories\Landlord\PlanFactory::new();
     }
 
     /**

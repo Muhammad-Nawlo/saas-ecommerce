@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('tenant_id')->index();
             $table->string('name');
             $table->string('slug');
-            $table->text('description')->default('');
+            $table->text('description')->nullable();
             $table->unsignedBigInteger('price_minor_units');
             $table->string('currency', 3);
             $table->boolean('is_active')->default(true);

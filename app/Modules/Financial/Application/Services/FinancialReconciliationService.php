@@ -47,6 +47,21 @@ final class FinancialReconciliationService
     }
 
     /**
+     * Run reconciliation and throw if any issues are found.
+     *
+     * @throws \RuntimeException
+     */
+    public function verify(?string $tenantId = null): void
+    {
+        $issues = $this->reconcile($tenantId);
+        if ($issues !== []) {
+            throw new \RuntimeException(
+                'Financial reconciliation failed: ' . count($issues) . ' issue(s) found. ' . json_encode($issues, JSON_THROW_ON_ERROR)
+            );
+        }
+    }
+
+    /**
      * For each ledger transaction referencing this order, ensure debits == credits.
      */
     private function checkLedgerBalanced(FinancialOrder $order, array &$issues): void

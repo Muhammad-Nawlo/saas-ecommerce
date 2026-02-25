@@ -44,4 +44,9 @@ class CustomerFactory extends Factory
             'is_active' => false,
         ]);
     }
+
+    public function forTenant(string $tenantId): static
+    {
+        return $this->state(fn (array $attributes) => ['tenant_id' => $tenantId]);
+    }
 }

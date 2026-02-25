@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Landlord\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,7 +23,9 @@ class Feature extends Model
     public const string TYPE_LIMIT = 'limit';
     public const string TYPE_BOOLEAN = 'boolean';
 
-    use HasUuids, SoftDeletes;
+    use HasFactory;
+    use HasUuids;
+    use SoftDeletes;
 
     protected $connection;
 
@@ -38,6 +41,11 @@ class Feature extends Model
     {
         $this->connection = config('tenancy.database.central_connection', config('database.default'));
         parent::__construct($attributes);
+    }
+
+    protected static function newFactory(): \Database\Factories\Landlord\FeatureFactory
+    {
+        return \Database\Factories\Landlord\FeatureFactory::new();
     }
 
     /**

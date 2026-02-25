@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Landlord\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -24,6 +25,7 @@ class Subscription extends Model
     public const string STATUS_CANCELED = 'canceled';
     public const string STATUS_PAST_DUE = 'past_due';
 
+    use HasFactory;
     use HasUuids;
 
     protected $connection;
@@ -54,6 +56,11 @@ class Subscription extends Model
     {
         $this->connection = config('tenancy.database.central_connection', config('database.default'));
         parent::__construct($attributes);
+    }
+
+    protected static function newFactory(): \Database\Factories\Landlord\SubscriptionFactory
+    {
+        return \Database\Factories\Landlord\SubscriptionFactory::new();
     }
 
     /**

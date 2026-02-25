@@ -1,25 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class DatabaseSeeder extends Seeder
+/**
+ * Main seeder. Order matters: landlord first, then tenants, then financial integrity.
+ *
+ * DatabaseSeeder
+ *  ├── LandlordSeeder (super-admin, plans, features, tenants, subscriptions, landlord roles)
+ *  ├── TenantSeeder (per-tenant: TenantDataSeeder with tenancy initialized)
+ *  └── FinancialIntegritySeeder (verify reconciliation per tenant)
+ */
+final class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            LandlordSeeder::class,
+            TenantSeeder::class,
+            FinancialIntegritySeeder::class,
         ]);
     }
 }

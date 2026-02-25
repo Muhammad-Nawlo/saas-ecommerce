@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('type', 32); // percentage, fixed, free_shipping, threshold, bogo
             $table->unsignedInteger('value_cents')->default(0); // fixed amount or threshold; percentage stored as 0-10000 (e.g. 1000 = 10%)
-            $table->unsignedDecimal('percentage', 5, 2)->nullable(); // for percentage type
+            $table->decimal('percentage', 5, 2)->unsigned()->nullable(); // for percentage type
             $table->unsignedBigInteger('min_cart_cents')->default(0);
             $table->unsignedBigInteger('buy_quantity')->nullable(); // for bogo: buy X
             $table->unsignedBigInteger('get_quantity')->nullable(); // for bogo: get Y free

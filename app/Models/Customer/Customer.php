@@ -98,4 +98,9 @@ class Customer extends Authenticatable implements MustVerifyEmail, \Illuminate\C
     {
         return $this->is_active;
     }
+
+    protected static function newFactory(): \Database\Factories\CustomerFactory
+    {
+        return \Database\Factories\CustomerFactory::new();
+    }
 }
