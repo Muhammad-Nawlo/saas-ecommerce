@@ -13,7 +13,10 @@ return [
     |
     */
 
-    /* Production: set QUEUE_CONNECTION=redis for scale; database for single-server. */
+    /*
+    | Production: QUEUE_CONNECTION=redis with Horizon. See docs/DEPLOYMENT_CHECKLIST.md.
+    | Named queues: default, financial (high priority), audit, low.
+    */
     'default' => env('QUEUE_CONNECTION', 'database'),
 
     /*
@@ -65,7 +68,7 @@ return [
             'after_commit' => false,
         ],
 
-        /* Redis: recommended for production. Use Horizon for worker management. */
+        /* Redis: production standard. Use Horizon; financial/audit jobs use named queues. */
         'redis' => [
             'driver' => 'redis',
             'connection' => env('REDIS_QUEUE_CONNECTION', 'default'),

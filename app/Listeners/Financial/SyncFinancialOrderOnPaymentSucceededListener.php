@@ -84,6 +84,7 @@ final class SyncFinancialOrderOnPaymentSucceededListener
                 'tenant_id' => $tenantId,
                 'order_id' => $order->id,
                 'financial_order_id' => $financialOrder->id,
+                'payment_id' => $payment?->id,
             ]);
         });
     }

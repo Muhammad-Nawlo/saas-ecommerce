@@ -11,15 +11,14 @@ test('health endpoint returns ok when all services available', function (): void
     $response->assertOk();
     $response->assertJsonStructure([
         'status',
-        'services' => [
-            'db',
-            'cache',
-            'queue',
-        ],
+        'database',
+        'redis',
+        'queue',
     ]);
     expect($response->json('status'))->toBeIn(['ok', 'degraded']);
-    expect($response->json('services.db'))->toBeTrue();
-    expect($response->json('services.cache'))->toBeTrue();
+    expect($response->json('database'))->toBeIn(['connected', 'disconnected']);
+    expect($response->json('redis'))->toBeIn(['connected', 'disconnected']);
+    expect($response->json('queue'))->toBeIn(['ok', 'error']);
 })->group('health');
 
 test('health returns json', function (): void {

@@ -110,6 +110,10 @@ return [
     | stores, there might be other applications using the same cache. For
     | that reason, you may prefix every cache key to avoid collisions.
     |
+    | Tenant isolation: When tenancy is initialized, CacheTenancyBootstrapper
+    | (config/tenancy.php) prefixes cache keys by tenant id. No shared cache
+    | collisions between tenants when using cache within tenant context.
+    |
     */
 
     'prefix' => env('CACHE_PREFIX', Str::slug((string) env('APP_NAME', 'laravel')).'-cache-'),

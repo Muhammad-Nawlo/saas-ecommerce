@@ -12,8 +12,8 @@ return [
     'domain_model' => Domain::class,
 
     /**
-     * The list of domains hosting your central app.
-     * Set via CENTRAL_DOMAINS env (comma-separated). Only relevant if using domain/subdomain identification.
+     * The list of domains hosting your central app (landlord/admin).
+     * Set via CENTRAL_DOMAINS env (comma-separated). Safe for config:cache.
      */
     'central_domains' => array_map('trim', array_filter(explode(',', env('CENTRAL_DOMAINS', '127.0.0.1,localhost,sass-ecommerce.test')))),
 

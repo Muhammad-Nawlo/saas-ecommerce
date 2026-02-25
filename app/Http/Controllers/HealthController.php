@@ -8,23 +8,27 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Redis;
 
 /**
- * Production health check. Returns connectivity status for database, cache, queue.
+ * Production health check for load balancers and monitoring.
+ * GET /health returns JSON: status, database, redis, queue.
+ * No sensitive data. Returns 503 if any required service is down.
  */
 final class HealthController
 {
     public function __invoke(): JsonResponse
     {
-        $services = [
-            'db' => $this->checkDatabase(),
-            'cache' => $this->checkCache(),
-            'queue' => $this->checkQueue(),
-        ];
-        $ok = !in_array(false, $services, true);
+        $database = $this->checkDatabase();
+        $redis = $this->checkRedis();
+        $queue = $this->checkQueue();
+        $ok = $database && $redis && $queue;
+
         return response()->json([
             'status' => $ok ? 'ok' : 'degraded',
-            'services' => $services,
+            'database' => $database ? 'connected' : 'disconnected',
+            'redis' => $redis ? 'connected' : 'disconnected',
+            'queue' => $queue ? 'ok' : 'error',
         ], $ok ? 200 : 503);
     }
 
@@ -32,7 +36,20 @@ final class HealthController
     {
         try {
             DB::connection()->getPdo();
-            DB::connection()->getDatabaseName();
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function checkRedis(): bool
+    {
+        $driver = config('cache.default');
+        if ($driver !== 'redis' && config('queue.default') !== 'redis') {
+            return true;
+        }
+        try {
+            Redis::connection()->ping();
             return true;
         } catch (\Throwable) {
             return false;
@@ -42,7 +59,7 @@ final class HealthController
     private function checkCache(): bool
     {
         try {
-            $key = 'health_check_' . uniqid();
+            $key = 'health_check_' . uniqid('', true);
             Cache::put($key, 1, 5);
             $ok = Cache::get($key) === 1;
             Cache::forget($key);
@@ -58,8 +75,7 @@ final class HealthController
             if (config('queue.default') === 'sync') {
                 return true;
             }
-            $connection = Queue::connection();
-            $connection->size('default');
+            Queue::connection()->size('default');
             return true;
         } catch (\Throwable) {
             return false;

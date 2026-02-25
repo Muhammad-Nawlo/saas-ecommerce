@@ -29,7 +29,7 @@ class CreateInvoiceOnOrderPaidListener
         }
         try {
             $invoice = $this->invoiceService->createFromOrder($event->order);
-            \Illuminate\Support\Facades\Log::channel('stack')->info('invoice_created', [
+            \Illuminate\Support\Facades\Log::channel('stack')->info('invoice_issued', [
                 'tenant_id' => $event->order->tenant_id,
                 'order_id' => $event->order->id,
                 'financial_order_id' => $event->order->id,

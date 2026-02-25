@@ -63,7 +63,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerFailedJobHandling();
 
         RateLimiter::for('api', fn () => Limit::perMinute(60)->by(request()->user()?->id ?: request()->ip()));
-        RateLimiter::for('customer-register', fn () => Limit::perMinute(5)->by(request()->ip()));
+        RateLimiter::for('customer-register', fn () => Limit::perMinute(3)->by(request()->ip()));
         RateLimiter::for('customer-login', fn () => Limit::perMinute(5)->by(request()->ip()));
         RateLimiter::for('customer-forgot-password', fn () => Limit::perMinute(3)->by(request()->ip()));
         RateLimiter::for('customer-reset-password', fn () => Limit::perMinute(3)->by(request()->ip()));
@@ -93,11 +93,18 @@ class AppServiceProvider extends ServiceProvider
 
     private function registerRateLimiters(): void
     {
-        RateLimiter::for('checkout', fn () => Limit::perMinute(30)->by(request()->user()?->id ?: request()->ip()));
+        // Checkout: per IP and per tenant (when tenant context exists) to prevent abuse
+        RateLimiter::for('checkout', function () {
+            $key = request()->ip();
+            if (function_exists('tenant') && tenant()) {
+                $key .= '|tenant:' . tenant('id');
+            }
+            return Limit::perMinute(30)->by($key);
+        });
         RateLimiter::for('payment', fn () => Limit::perMinute(20)->by(request()->user()?->id ?: request()->ip()));
-        RateLimiter::for('payment-confirm', fn () => Limit::perMinute(10)->by(request()->user()?->id ?: request()->ip()));
+        RateLimiter::for('payment-confirm', fn () => Limit::perMinute(6)->by(request()->user()?->id ?: request()->ip()));
         RateLimiter::for('webhook', fn () => Limit::perMinute(120)->by(request()->ip()));
-        RateLimiter::for('login', fn () => Limit::perMinute(10)->by(request()->ip()));
+        RateLimiter::for('login', fn () => Limit::perMinute(5)->by(request()->ip()));
     }
 
     private function registerFailedJobHandling(): void

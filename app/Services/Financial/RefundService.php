@@ -74,8 +74,7 @@ final class RefundService
                 'tenant_id' => $order->tenant_id,
                 'order_id' => $order->operational_order_id,
                 'financial_order_id' => $order->id,
-                'invoice_id' => null,
-                'ledger_transaction_id' => null,
+                'refund_id' => $refund->id,
             ]);
 
             event(new OrderRefunded($order, $amountCents, $providerReference));

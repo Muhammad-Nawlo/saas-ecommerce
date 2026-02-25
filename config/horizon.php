@@ -21,8 +21,9 @@ return [
     'middleware' => ['web'],
     'waits' => [
         'redis:default' => 60,
-        'redis:audit' => 120,
         'redis:financial' => 90,
+        'redis:audit' => 120,
+        'redis:low' => 120,
         'redis:billing' => 90,
     ],
     'trim' => [
@@ -87,6 +88,16 @@ return [
             'tries' => 3,
             'timeout' => 90,
         ],
+        'supervisor-low' => [
+            'connection' => 'redis',
+            'queue' => ['low'],
+            'balance' => 'simple',
+            'maxProcesses' => 1,
+            'minProcesses' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 60,
+        ],
     ],
 
     'environments' => [
@@ -96,14 +107,16 @@ return [
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
-            'supervisor-audit' => ['maxProcesses' => 2],
             'supervisor-financial' => ['maxProcesses' => 2],
+            'supervisor-audit' => ['maxProcesses' => 2],
+            'supervisor-low' => ['maxProcesses' => 2],
             'supervisor-billing' => ['maxProcesses' => 2],
         ],
         'local' => [
             'supervisor-default' => ['maxProcesses' => 3],
-            'supervisor-audit' => ['maxProcesses' => 1],
             'supervisor-financial' => ['maxProcesses' => 1],
+            'supervisor-audit' => ['maxProcesses' => 1],
+            'supervisor-low' => ['maxProcesses' => 1],
             'supervisor-billing' => ['maxProcesses' => 1],
         ],
     ],

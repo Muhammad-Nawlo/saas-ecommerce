@@ -12,7 +12,8 @@ class SubscriptionCancelledListener implements ShouldQueue
 {
     public function handle(SubscriptionCancelled $event): void
     {
-        Log::channel('stack')->info('Subscription cancelled', [
+        Log::channel('stack')->info('subscription_changed', [
+            'event' => 'cancelled',
             'subscription_id' => $event->subscriptionId->value(),
             'occurred_at' => $event->occurredAt->format(\DateTimeInterface::ATOM),
         ]);

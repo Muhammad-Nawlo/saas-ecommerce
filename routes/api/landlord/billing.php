@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Landlord\BillingCallbackController;
 use App\Landlord\Billing\Infrastructure\Http\Controllers\PlanController;
 use App\Landlord\Billing\Infrastructure\Http\Controllers\SubscriptionController;
 use App\Landlord\Http\Controllers\BillingCheckoutController;
@@ -35,7 +36,7 @@ Route::prefix('billing')->group(function (): void {
     Route::post('webhook', \App\Landlord\Http\Controllers\StripeWebhookController::class)
         ->middleware('throttle:webhook')
         ->name('landlord.billing.webhook');
-    Route::get('success', fn () => response()->json(['message' => 'Checkout successful']))->name('landlord.billing.success');
-    Route::get('cancel', fn () => response()->json(['message' => 'Checkout cancelled']))->name('landlord.billing.cancel');
-    Route::get('portal/return', fn () => response()->json(['message' => 'Returned from billing portal']))->name('landlord.billing.portal.return');
+    Route::get('success', [BillingCallbackController::class, 'success'])->name('landlord.billing.success');
+    Route::get('cancel', [BillingCallbackController::class, 'cancel'])->name('landlord.billing.cancel');
+    Route::get('portal/return', [BillingCallbackController::class, 'portalReturn'])->name('landlord.billing.portal.return');
 });
