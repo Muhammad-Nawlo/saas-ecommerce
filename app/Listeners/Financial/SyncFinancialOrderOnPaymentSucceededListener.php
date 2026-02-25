@@ -8,6 +8,7 @@ use App\Modules\Orders\Infrastructure\Persistence\OrderModel;
 use App\Modules\Payments\Domain\Repositories\PaymentRepository;
 use App\Modules\Payments\Domain\ValueObjects\PaymentId;
 use App\Modules\Payments\Domain\Events\PaymentSucceeded;
+use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
 use App\Services\Financial\FinancialOrderSyncService;
 use App\Services\Financial\OrderLockService;
 use App\Services\Financial\OrderPaymentService;
@@ -32,6 +33,7 @@ final class SyncFinancialOrderOnPaymentSucceededListener
         private OrderPaymentService $paymentService,
         private PaymentSnapshotService $paymentSnapshotService,
         private RecordPromotionUsageService $recordPromotionUsage,
+        private AuditLogger $auditLogger,
     ) {
     }
 
@@ -84,8 +86,16 @@ final class SyncFinancialOrderOnPaymentSucceededListener
                 'tenant_id' => $tenantId,
                 'order_id' => $order->id,
                 'financial_order_id' => $financialOrder->id,
-                'payment_id' => $payment?->id,
+                'payment_id' => $payment?->id(),
             ]);
+            $this->auditLogger->logStructuredTenantAction(
+                'payment_confirmed',
+                'Payment confirmed: order ' . $financialOrder->order_number,
+                $financialOrder,
+                ['status' => 'pending'],
+                ['status' => 'paid'],
+                ['payment_id' => $payment?->id()->value(), 'order_id' => $order->id],
+            );
         });
     }
 }

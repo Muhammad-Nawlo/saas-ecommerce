@@ -73,6 +73,7 @@ final class OrderLockService
 
             $order->snapshot = $this->buildSnapshot($order, $result, $appliedPromotions ?? []);
             $this->currencySnapshotService->fillSnapshot($order);
+            $order->setSnapshotHashFromCurrentState();
             $order->save();
         });
 

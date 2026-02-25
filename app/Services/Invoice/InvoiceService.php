@@ -91,16 +91,13 @@ final class InvoiceService
                 ]);
             }
 
-            $this->auditLogger->logTenantAction(
+            $this->auditLogger->logStructuredTenantAction(
                 'invoice_created',
                 'Invoice created from order: ' . $invoice->invoice_number,
                 $invoice,
-                [
-                    'order_id' => $order->id,
-                    'actor_id' => auth()->id(),
-                    'ip' => request()->ip(),
-                    'timestamp' => now()->toIso8601String(),
-                ],
+                null,
+                ['status' => Invoice::STATUS_DRAFT],
+                ['order_id' => $order->id, 'ip' => request()->ip()],
             );
 
             return $invoice;
@@ -131,20 +128,17 @@ final class InvoiceService
                 'discount_total_cents' => $invoice->discount_total_cents,
                 'total_cents' => $invoice->total_cents,
             ]);
+            $invoice->setSnapshotHashFromCurrentState();
             $invoice->save();
         });
 
-        $this->auditLogger->logTenantAction(
+        $this->auditLogger->logStructuredTenantAction(
             'invoice_issued',
             'Invoice issued: ' . $invoice->invoice_number,
             $invoice,
-            [
-                'old_status' => $oldStatus,
-                'new_status' => Invoice::STATUS_ISSUED,
-                'actor_id' => auth()->id(),
-                'ip' => request()->ip(),
-                'timestamp' => now()->toIso8601String(),
-            ],
+            ['status' => $oldStatus],
+            ['status' => Invoice::STATUS_ISSUED],
+            ['ip' => request()->ip()],
         );
         Log::info('Invoice issued', [
             'tenant_id' => $invoice->tenant_id,

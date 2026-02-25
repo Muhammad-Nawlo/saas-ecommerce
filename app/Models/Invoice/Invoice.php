@@ -7,7 +7,9 @@ namespace App\Models\Invoice;
 use App\Models\Customer\Customer;
 use App\Models\Financial\FinancialOrder;
 use App\Modules\Shared\Domain\Exceptions\InvoiceLockedException;
+use App\Modules\Shared\Infrastructure\Audit\SnapshotHash;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +34,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $issued_at
  * @property \Illuminate\Support\Carbon|null $paid_at
  * @property array|null $snapshot
+ * @property string|null $snapshot_hash
  * @property \Illuminate\Support\Carbon|null $locked_at
  */
 class Invoice extends Model
@@ -65,6 +68,7 @@ class Invoice extends Model
         'issued_at',
         'paid_at',
         'snapshot',
+        'snapshot_hash',
         'locked_at',
     ];
 
@@ -140,6 +144,13 @@ class Invoice extends Model
             }
             foreach (self::LOCKED_ATTRIBUTES as $attr) {
                 if ($invoice->isDirty($attr)) {
+                    Log::channel('security')->warning('Immutability violation: invoice update blocked', [
+                        'entity_type' => 'invoice',
+                        'entity_id' => $invoice->id,
+                        'tenant_id' => $invoice->tenant_id,
+                        'attribute' => $attr,
+                        'invoice_number' => $invoice->invoice_number,
+                    ]);
                     throw new InvoiceLockedException('Cannot modify issued invoice: ' . $attr . ' is immutable.');
                 }
             }
@@ -167,5 +178,55 @@ class Invoice extends Model
     public function scopeForTenant(Builder $query, string $tenantId): Builder
     {
         return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Tamper detection: recompute hash from current snapshot/immutable fields and compare to stored snapshot_hash.
+     * Logs to security channel on mismatch. Does not auto-correct.
+     */
+    public function verifySnapshotIntegrity(): bool
+    {
+        if (! $this->isIssued() || $this->snapshot_hash === null) {
+            return true;
+        }
+        $computed = SnapshotHash::hash($this->buildHashPayload());
+        if ($computed !== $this->snapshot_hash) {
+            Log::channel('security')->critical('Invoice snapshot hash mismatch', [
+                'tenant_id' => $this->tenant_id,
+                'invoice_id' => $this->id,
+                'invoice_number' => $this->invoice_number,
+                'stored_hash' => $this->snapshot_hash,
+                'computed_hash' => $computed,
+            ]);
+            return false;
+        }
+        return true;
+    }
+
+    /** @return array<string, mixed> Fields included in snapshot hash (immutable after issue). */
+    private function buildHashPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'order_id' => $this->order_id,
+            'customer_id' => $this->customer_id,
+            'invoice_number' => $this->invoice_number,
+            'status' => $this->status,
+            'currency' => $this->currency,
+            'subtotal_cents' => $this->subtotal_cents,
+            'tax_total_cents' => $this->tax_total_cents,
+            'discount_total_cents' => $this->discount_total_cents,
+            'total_cents' => $this->total_cents,
+            'snapshot' => $this->snapshot,
+            'issued_at' => $this->issued_at?->toIso8601String(),
+            'locked_at' => $this->locked_at?->toIso8601String(),
+        ];
+    }
+
+    /** Set snapshot_hash from current immutable fields. Call at issue time only. */
+    public function setSnapshotHashFromCurrentState(): void
+    {
+        $this->snapshot_hash = SnapshotHash::hash($this->buildHashPayload());
     }
 }

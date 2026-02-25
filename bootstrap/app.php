@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckTenantFeature;
+use App\Http\Middleware\EnsureSystemNotReadOnly;
 use App\Http\Middleware\EnsureTenantNotSuspended;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(EnsureSystemNotReadOnly::class);
         $middleware->alias([
             'feature' => CheckTenantFeature::class,
             'subscription.active' => EnsureTenantSubscriptionIsActive::class,

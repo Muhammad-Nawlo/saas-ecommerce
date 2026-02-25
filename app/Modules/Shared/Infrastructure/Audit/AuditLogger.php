@@ -35,6 +35,9 @@ final class AuditLogger
         if ($table === config('audit.landlord_table')) {
             $attributes['tenant_id'] = tenant('id');
         }
+        if ($table === config('audit.tenant_table')) {
+            $attributes['tenant_id'] = tenant('id');
+        }
         LogAuditEntry::dispatch($connection, $table, $attributes, tenant('id'))->onQueue(config('audit.queue', 'low'));
     }
 
@@ -45,6 +48,31 @@ final class AuditLogger
         ?Model $model = null,
         array $properties = [],
     ): void {
+        $this->log($eventType, $description, $model, $properties);
+    }
+
+    /**
+     * Standardized audit payload for compliance: tenant_id, actor_id, entity_type, entity_id, event_type, before_state, after_state, timestamp.
+     * Use for financial and lifecycle events. Merges into properties; model/event_type set at top level.
+     */
+    public function logStructuredTenantAction(
+        string $eventType,
+        string $description,
+        ?Model $model = null,
+        ?array $beforeState = null,
+        ?array $afterState = null,
+        array $extra = [],
+    ): void {
+        $properties = array_merge([
+            'tenant_id' => tenant('id'),
+            'actor_id' => auth()->id(),
+            'entity_type' => $model ? $model->getMorphClass() : '',
+            'entity_id' => $model ? (string) $model->getKey() : null,
+            'event_type' => $eventType,
+            'before_state' => $beforeState,
+            'after_state' => $afterState,
+            'timestamp' => now()->toIso8601String(),
+        ], $extra);
         $this->log($eventType, $description, $model, $properties);
     }
 
@@ -70,6 +98,31 @@ final class AuditLogger
             'tenant_id' => $tenantId ?? tenant('id'),
         ];
         LogAuditEntry::dispatch($connection, $table, $attributes, $tenantId)->onQueue(config('audit.queue', 'low'));
+    }
+
+    /**
+     * Standardized landlord audit: tenant_id, actor_id, entity_type, entity_id, event_type, before_state, after_state, timestamp.
+     */
+    public function logStructuredLandlordAction(
+        string $eventType,
+        string $description,
+        ?Model $model = null,
+        ?array $beforeState = null,
+        ?array $afterState = null,
+        array $extra = [],
+        ?string $tenantId = null,
+    ): void {
+        $properties = array_merge([
+            'tenant_id' => $tenantId ?? tenant('id'),
+            'actor_id' => auth()->id(),
+            'entity_type' => $model ? $model->getMorphClass() : '',
+            'entity_id' => $model ? (string) $model->getKey() : null,
+            'event_type' => $eventType,
+            'before_state' => $beforeState,
+            'after_state' => $afterState,
+            'timestamp' => now()->toIso8601String(),
+        ], $extra);
+        $this->logLandlordAction($eventType, $description, $model, $properties, $tenantId);
     }
 
     private function resolveConnection(): string

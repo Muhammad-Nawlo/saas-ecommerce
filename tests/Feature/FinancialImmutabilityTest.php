@@ -36,8 +36,11 @@ test('FinancialOrder throws when mutating locked order', function (): void {
         'snapshot' => ['total_cents' => 10000],
     ]);
 
+    $originalTotal = $order->total_cents;
     $order->total_cents = 9999;
     expect(fn () => $order->save())->toThrow(FinancialOrderLockedException::class);
+    $order->refresh();
+    expect($order->total_cents)->toBe($originalTotal);
 })->group('financial', 'financial_immutability');
 
 test('Invoice throws when mutating total after issued', function (): void {
@@ -58,8 +61,11 @@ test('Invoice throws when mutating total after issued', function (): void {
         'total_cents' => 10000,
     ]);
 
+    $originalTotal = $invoice->total_cents;
     $invoice->total_cents = 9999;
     expect(fn () => $invoice->save())->toThrow(InvoiceLockedException::class);
+    $invoice->refresh();
+    expect($invoice->total_cents)->toBe($originalTotal);
 })->group('financial', 'financial_immutability');
 
 test('PaymentModel throws when mutating amount after confirmed', function (): void {
@@ -80,6 +86,9 @@ test('PaymentModel throws when mutating amount after confirmed', function (): vo
         'provider_payment_id' => 'pi_ok',
     ]);
 
+    $originalAmount = $payment->amount;
     $payment->amount = 9999;
     expect(fn () => $payment->save())->toThrow(PaymentConfirmedException::class);
+    $payment->refresh();
+    expect($payment->amount)->toBe($originalAmount);
 })->group('financial', 'financial_immutability');

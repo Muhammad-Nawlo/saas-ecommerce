@@ -16,7 +16,9 @@ use App\Landlord\Billing\Domain\ValueObjects\PlanId;
 use App\Landlord\Billing\Domain\ValueObjects\StripeSubscriptionId;
 use App\Landlord\Billing\Domain\ValueObjects\SubscriptionId;
 use App\Landlord\Billing\Domain\ValueObjects\SubscriptionStatus;
+use App\Landlord\Models\Subscription as SubscriptionModel;
 use App\Landlord\Services\FeatureResolver;
+use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
 use App\Modules\Shared\Domain\Exceptions\DomainException;
 use Illuminate\Contracts\Events\Dispatcher;
 
@@ -27,7 +29,8 @@ final readonly class BillingService
         private SubscriptionRepository $subscriptionRepository,
         private StripeBillingGateway $stripeGateway,
         private Dispatcher $events,
-        private FeatureResolver $featureResolver
+        private FeatureResolver $featureResolver,
+        private AuditLogger $auditLogger,
     ) {
     }
 
@@ -87,13 +90,25 @@ final readonly class BillingService
         if ($subscription === null) {
             throw new DomainException('Subscription not found');
         }
+        $beforeStatus = $subscription->status()->value();
         $this->stripeGateway->cancelSubscription($subscription->stripeSubscriptionId()->value());
         $subscription->markCancelled();
         $this->subscriptionRepository->save($subscription);
         foreach ($subscription->pullDomainEvents() as $event) {
             $this->events->dispatch($event);
         }
-        $this->featureResolver->invalidateCacheForTenant($subscription->tenantId()->value());
+        $tenantId = $subscription->tenantId()->value();
+        $model = SubscriptionModel::on(config('tenancy.database.central_connection'))->find($subscription->id()->value());
+        $this->auditLogger->logStructuredLandlordAction(
+            'subscription_cancelled',
+            "Subscription cancelled for tenant {$tenantId}",
+            $model,
+            ['status' => $beforeStatus],
+            ['status' => 'cancelled'],
+            ['stripe_subscription_id' => $subscription->stripeSubscriptionId()->value()],
+            $tenantId,
+        );
+        $this->featureResolver->invalidateCacheForTenant($tenantId);
     }
 
     public function syncSubscriptionFromStripe(SyncStripeSubscriptionCommand $command): Subscription
@@ -102,6 +117,10 @@ final readonly class BillingService
         if ($subscription === null) {
             throw new DomainException('Subscription not found');
         }
+        $beforePlanId = $subscription->planId()->value();
+        $beforeStatus = $subscription->status()->value();
+        $beforePeriodEnd = $subscription->currentPeriodEnd()->getTimestamp();
+
         $stripeData = $this->stripeGateway->retrieveSubscription($command->stripeSubscriptionId);
         $subscription->syncFromStripe(
             $stripeData['status'],
@@ -109,19 +128,62 @@ final readonly class BillingService
             $stripeData['current_period_end'],
             $stripeData['cancel_at_period_end']
         );
-        // Sync plan when Stripe subscription price changed (upgrade/downgrade).
+        $planChanged = false;
         $priceId = $stripeData['price_id'] ?? null;
         if ($priceId !== null && $priceId !== '') {
             $plan = $this->planRepository->findByStripePriceId($priceId);
             if ($plan !== null && $subscription->planId()->value() !== $plan->id()->value()) {
                 $subscription->syncPlanFromStripe($plan->id());
+                $planChanged = true;
             }
         }
+
         $this->subscriptionRepository->save($subscription);
         foreach ($subscription->pullDomainEvents() as $event) {
             $this->events->dispatch($event);
         }
-        $this->featureResolver->invalidateCacheForTenant($subscription->tenantId()->value());
+
+        $tenantId = $subscription->tenantId()->value();
+        $subId = $subscription->id()->value();
+        $model = SubscriptionModel::on(config('tenancy.database.central_connection'))->find($subId);
+        if ($planChanged) {
+            $this->auditLogger->logStructuredLandlordAction(
+                'subscription_plan_changed',
+                "Subscription plan changed for tenant {$tenantId}",
+                $model,
+                ['plan_id' => $beforePlanId],
+                ['plan_id' => $subscription->planId()->value()],
+                ['stripe_subscription_id' => $command->stripeSubscriptionId],
+                $tenantId,
+            );
+        }
+        if ($beforeStatus !== $subscription->status()->value()) {
+            $newStatus = $subscription->status()->value();
+            $eventType = $newStatus === 'canceled' || $newStatus === 'cancelled' ? 'subscription_cancelled'
+                : ($newStatus === 'past_due' ? 'subscription_payment_failure' : 'subscription_status_changed');
+            $this->auditLogger->logStructuredLandlordAction(
+                $eventType,
+                "Subscription {$eventType} for tenant {$tenantId}",
+                $model,
+                ['status' => $beforeStatus],
+                ['status' => $newStatus],
+                ['stripe_subscription_id' => $command->stripeSubscriptionId],
+                $tenantId,
+            );
+        }
+        if ($subscription->currentPeriodEnd()->getTimestamp() > $beforePeriodEnd) {
+            $this->auditLogger->logStructuredLandlordAction(
+                'subscription_renewed',
+                "Subscription renewed for tenant {$tenantId}",
+                $model,
+                ['current_period_end' => $beforePeriodEnd],
+                ['current_period_end' => $subscription->currentPeriodEnd()->getTimestamp()],
+                ['stripe_subscription_id' => $command->stripeSubscriptionId],
+                $tenantId,
+            );
+        }
+
+        $this->featureResolver->invalidateCacheForTenant($tenantId);
         return $subscription;
     }
 

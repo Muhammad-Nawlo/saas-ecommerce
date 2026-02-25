@@ -21,52 +21,37 @@ class AuditLogOrderStatusListener
 
     public function handleOrderLocked(OrderLocked $event): void
     {
-        $this->auditLogger->logTenantAction(
+        $this->auditLogger->logStructuredTenantAction(
             'order_locked',
             'Financial order locked: ' . $event->order->order_number,
             $event->order,
-            [
-                'old_status' => 'draft',
-                'new_status' => 'pending',
-                'actor_id' => auth()->id(),
-                'ip' => Request::ip(),
-                'user_agent' => Request::userAgent(),
-                'timestamp' => now()->toIso8601String(),
-            ],
+            ['status' => 'draft'],
+            ['status' => 'pending'],
+            ['ip' => Request::ip(), 'user_agent' => Request::userAgent()],
         );
     }
 
     public function handleOrderPaid(OrderPaid $event): void
     {
-        $this->auditLogger->logTenantAction(
+        $this->auditLogger->logStructuredTenantAction(
             'order_paid',
             'Financial order paid: ' . $event->order->order_number,
             $event->order,
-            [
-                'old_status' => 'pending',
-                'new_status' => 'paid',
-                'provider_reference' => $event->providerReference,
-                'actor_id' => auth()->id(),
-                'ip' => Request::ip(),
-                'timestamp' => now()->toIso8601String(),
-            ],
+            ['status' => 'pending'],
+            ['status' => 'paid'],
+            ['provider_reference' => $event->providerReference, 'ip' => Request::ip()],
         );
     }
 
     public function handleOrderRefunded(OrderRefunded $event): void
     {
-        $this->auditLogger->logTenantAction(
+        $this->auditLogger->logStructuredTenantAction(
             'order_refunded',
             'Financial order refunded: ' . $event->order->order_number . ' (' . $event->amountCents . ' cents)',
             $event->order,
-            [
-                'new_status' => 'refunded',
-                'amount_cents' => $event->amountCents,
-                'provider_reference' => $event->providerReference,
-                'actor_id' => auth()->id(),
-                'ip' => Request::ip(),
-                'timestamp' => now()->toIso8601String(),
-            ],
+            ['status' => $event->order->getOriginal('status') ?? 'paid'],
+            ['status' => 'refunded'],
+            ['amount_cents' => $event->amountCents, 'provider_reference' => $event->providerReference, 'ip' => Request::ip()],
         );
     }
 

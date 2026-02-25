@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models\Financial;
 
 use App\Modules\Shared\Domain\Exceptions\FinancialOrderLockedException;
+use App\Modules\Shared\Infrastructure\Audit\SnapshotHash;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $total_display_cents
  * @property string $status
  * @property array|null $snapshot
+ * @property string|null $snapshot_hash
  * @property \Illuminate\Support\Carbon|null $locked_at
  * @property \Illuminate\Support\Carbon|null $paid_at
  */
@@ -70,6 +73,7 @@ class FinancialOrder extends Model
         'total_display_cents',
         'status',
         'snapshot',
+        'snapshot_hash',
         'locked_at',
         'paid_at',
     ];
@@ -138,6 +142,13 @@ class FinancialOrder extends Model
             }
             foreach (self::LOCKED_ATTRIBUTES as $attr) {
                 if ($order->isDirty($attr)) {
+                    Log::channel('security')->warning('Immutability violation: financial order update blocked', [
+                        'entity_type' => 'financial_order',
+                        'entity_id' => $order->id,
+                        'tenant_id' => $order->tenant_id,
+                        'attribute' => $attr,
+                        'order_number' => $order->order_number,
+                    ]);
                     throw new FinancialOrderLockedException(
                         'Cannot modify financial order after lock: ' . $attr . ' is immutable.'
                     );
@@ -155,5 +166,52 @@ class FinancialOrder extends Model
             return $query->whereNull('tenant_id');
         }
         return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Tamper detection: recompute hash from current snapshot/immutable fields and compare to stored snapshot_hash.
+     * Logs to security channel on mismatch. Does not auto-correct.
+     */
+    public function verifySnapshotIntegrity(): bool
+    {
+        if (! $this->isLocked() || $this->snapshot_hash === null) {
+            return true;
+        }
+        $payload = $this->buildHashPayload();
+        $computed = SnapshotHash::hash($payload);
+        if ($computed !== $this->snapshot_hash) {
+            Log::channel('security')->critical('Financial order snapshot hash mismatch', [
+                'tenant_id' => $this->tenant_id,
+                'financial_order_id' => $this->id,
+                'order_number' => $this->order_number,
+                'stored_hash' => $this->snapshot_hash,
+                'computed_hash' => $computed,
+            ]);
+            return false;
+        }
+        return true;
+    }
+
+    /** @return array<string, mixed> Fields included in snapshot hash (immutable after lock). */
+    private function buildHashPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'tenant_id' => $this->tenant_id,
+            'order_number' => $this->order_number,
+            'subtotal_cents' => $this->subtotal_cents,
+            'tax_total_cents' => $this->tax_total_cents,
+            'discount_total_cents' => $this->discount_total_cents ?? 0,
+            'total_cents' => $this->total_cents,
+            'currency' => $this->currency,
+            'snapshot' => $this->snapshot,
+            'locked_at' => $this->locked_at?->toIso8601String(),
+        ];
+    }
+
+    /** Set snapshot_hash from current immutable fields. Call at lock time only. */
+    public function setSnapshotHashFromCurrentState(): void
+    {
+        $this->snapshot_hash = SnapshotHash::hash($this->buildHashPayload());
     }
 }
