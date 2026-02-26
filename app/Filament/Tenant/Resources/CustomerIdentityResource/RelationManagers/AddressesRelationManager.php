@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources\CustomerIdentityResource\RelationManagers;
 
 use App\Models\Customer\CustomerAddress;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -48,11 +51,11 @@ class AddressesRelationManager extends RelationManager
                 Tables\Columns\IconColumn::make('is_default')->boolean(),
             ])
             ->headerActions([
-                Tables\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ]);
     }
 }

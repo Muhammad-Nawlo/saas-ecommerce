@@ -24,6 +24,6 @@ class CreditNotesRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('issued_at')->dateTime(),
             ])
             ->headerActions([])
-            ->actions([]);
+            ->recordActions([]);
     }
 }

@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\Landlord\Resources;
 
 use App\Landlord\Models\Feature;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,9 +23,10 @@ class FeatureResource extends Resource
 {
     protected static ?string $model = Feature::class;
 
+    protected static bool $isScopedToTenant = false;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Billing';
 
     protected static ?int $navigationSort = 2;
@@ -28,7 +35,7 @@ class FeatureResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Feature details')
+                Section::make('Feature details')
                     ->schema([
                         Forms\Components\TextInput::make('code')
                             ->required()
@@ -65,14 +72,14 @@ class FeatureResource extends Resource
                         Feature::TYPE_BOOLEAN => 'Boolean',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('code')

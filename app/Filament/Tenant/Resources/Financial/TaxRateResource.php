@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources\Financial;
 
 use App\Models\Financial\TaxRate;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -25,7 +27,7 @@ class TaxRateResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Tax rate')
+                SchemaSection::make('Tax rate')
                     ->schema([
                         Forms\Components\TextInput::make('name')->required()->maxLength(255),
                         Forms\Components\TextInput::make('percentage')
@@ -56,8 +58,8 @@ class TaxRateResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ]);
     }
 

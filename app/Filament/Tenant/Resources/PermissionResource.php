@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources;
 
 use App\Constants\TenantPermissions;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -43,8 +44,8 @@ class PermissionResource extends Resource
                 Tables\Columns\TextColumn::make('guard_name')->toggleable(),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
+            ->recordActions([
+                ViewAction::make(),
             ])
             ->modifyQueryUsing(fn (Builder $q) => $q->where('guard_name', 'web')->orderBy('name'));
     }

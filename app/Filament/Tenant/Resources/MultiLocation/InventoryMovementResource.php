@@ -70,7 +70,7 @@ class InventoryMovementResource extends Resource
                         return $q;
                     }),
             ])
-            ->actions([])
+            ->recordActions([])
             ->defaultSort('created_at', 'desc');
     }
 

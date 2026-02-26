@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources;
 
 use App\Models\Customer\Customer;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -35,7 +38,7 @@ class CustomerIdentityResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Profile')
+                SchemaSection::make('Profile')
                     ->schema([
                         Forms\Components\TextInput::make('email')->email()->required()->maxLength(255),
                         Forms\Components\TextInput::make('first_name')->required()->maxLength(255),
@@ -71,16 +74,16 @@ class CustomerIdentityResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('deactivate')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('deactivate')
                     ->label('Deactivate')
                     ->icon('heroicon-o-no-symbol')
                     ->color('warning')
                     ->requiresConfirmation()
                     ->action(fn (Customer $record) => $record->update(['is_active' => false]))
                     ->visible(fn (Customer $record) => $record->is_active),
-                Tables\Actions\Action::make('resetPassword')
+                Action::make('resetPassword')
                     ->label('Reset password')
                     ->icon('heroicon-o-key')
                     ->form([

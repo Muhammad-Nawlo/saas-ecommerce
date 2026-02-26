@@ -6,6 +6,8 @@ namespace App\Filament\Tenant\Resources\MultiLocation;
 
 use App\Models\Inventory\InventoryLocation;
 use App\Services\Inventory\InventoryLocationService;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -61,9 +63,9 @@ class InventoryLocationResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')->boolean()->sortable(),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('deactivate')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('deactivate')
                     ->label('Deactivate')
                     ->icon('heroicon-o-x-circle')
                     ->color('warning')

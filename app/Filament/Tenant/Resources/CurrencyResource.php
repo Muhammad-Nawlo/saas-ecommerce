@@ -6,8 +6,11 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Models\Currency\Currency;
 use App\Services\Currency\CurrencyService;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -27,7 +30,7 @@ class CurrencyResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Currency')
+                SchemaSection::make('Currency')
                     ->schema([
                         Forms\Components\TextInput::make('code')->required()->length(3)->uppercase()->disabled(fn (?Currency $r) => $r !== null),
                         Forms\Components\TextInput::make('name')->required()->maxLength(255),
@@ -50,14 +53,14 @@ class CurrencyResource extends Resource
                 Tables\Columns\IconColumn::make('is_active')->boolean()->sortable(),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('enableForTenant')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('enableForTenant')
                     ->label('Enable')
                     ->visible(fn (Currency $r) => static::canMultiCurrency() && !static::isEnabledForTenant($r))
                     ->action(fn (Currency $r) => app(CurrencyService::class)->enableCurrency($r->id))
                     ->requiresConfirmation(),
-                Tables\Actions\Action::make('disableForTenant')
+                Action::make('disableForTenant')
                     ->label('Disable')
                     ->visible(fn (Currency $r) => static::canMultiCurrency() && static::isEnabledForTenant($r))
                     ->action(fn (Currency $r) => app(CurrencyService::class)->disableCurrency($r->id))

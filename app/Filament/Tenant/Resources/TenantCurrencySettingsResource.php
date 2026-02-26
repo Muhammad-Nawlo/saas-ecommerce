@@ -6,8 +6,10 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Models\Currency\TenantCurrencySetting;
 use App\Models\Currency\Currency;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -33,7 +35,7 @@ class TenantCurrencySettingsResource extends Resource
         $currencies = Currency::where('is_active', true)->orderBy('code')->pluck('name', 'id')->toArray();
         return $schema
             ->schema([
-                Forms\Components\Section::make('Tenant currency')
+                SchemaSection::make('Tenant currency')
                     ->schema([
                         Forms\Components\Select::make('base_currency_id')
                             ->label('Base currency')
@@ -67,7 +69,7 @@ class TenantCurrencySettingsResource extends Resource
                 Tables\Columns\IconColumn::make('allow_multi_currency')->label('Multi-currency')->boolean(),
                 Tables\Columns\TextColumn::make('rounding_strategy')->label('Rounding'),
             ])
-            ->actions([Tables\Actions\EditAction::make()])
+            ->recordActions([EditAction::make()])
             ->defaultSort('id');
     }
 

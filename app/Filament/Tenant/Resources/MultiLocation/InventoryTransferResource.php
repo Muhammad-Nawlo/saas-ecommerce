@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Resources\MultiLocation;
 
 use App\Models\Inventory\InventoryTransfer;
 use App\Services\Inventory\InventoryTransferService;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -94,8 +95,8 @@ class InventoryTransferResource extends Resource
                         InventoryTransfer::STATUS_CANCELLED => 'Cancelled',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\Action::make('cancel')
+            ->recordActions([
+                Action::make('cancel')
                     ->label('Cancel')
                     ->visible(fn (InventoryTransfer $r) => $r->status === InventoryTransfer::STATUS_PENDING)
                     ->action(fn (InventoryTransfer $r) => app(InventoryTransferService::class)->cancel($r))

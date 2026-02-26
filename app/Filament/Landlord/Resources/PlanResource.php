@@ -6,8 +6,14 @@ namespace App\Filament\Landlord\Resources;
 
 use App\Filament\Landlord\Resources\PlanResource\RelationManagers\PlanFeaturesRelationManager;
 use App\Landlord\Models\Plan;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteBulkAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -18,9 +24,10 @@ class PlanResource extends Resource
 {
     protected static ?string $model = Plan::class;
 
+    protected static bool $isScopedToTenant = false;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-credit-card';
 
-    /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Billing';
 
     protected static ?int $navigationSort = 1;
@@ -29,7 +36,7 @@ class PlanResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Plan details')
+                Section::make('Plan details')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()
@@ -59,7 +66,6 @@ class PlanResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with('planFeatures.feature'))
             ->columns([
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('code')->searchable()->sortable(),
@@ -71,14 +77,14 @@ class PlanResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                    RestoreBulkAction::make(),
+                    ForceDeleteBulkAction::make(),
                 ]),
             ])
             ->defaultSort('name')
@@ -103,6 +109,6 @@ class PlanResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        return parent::getEloquentQuery()->with('planFeatures.feature');
     }
 }

@@ -6,8 +6,12 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Constants\TenantPermissions;
 use App\Enums\TenantRole;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -45,7 +49,7 @@ class RoleResource extends Resource
 
         return $schema
             ->schema([
-                Forms\Components\Section::make('Role')
+                SchemaSection::make('Role')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()
@@ -75,11 +79,13 @@ class RoleResource extends Resource
                     ->sortable(),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('name')
             ->modifyQueryUsing(fn (Builder $q) => $q->where('guard_name', 'web'));

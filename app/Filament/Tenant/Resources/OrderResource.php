@@ -101,10 +101,10 @@ class OrderResource extends Resource
                         return $q;
                     }),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                \Filament\Actions\EditAction::make(),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50]);
     }

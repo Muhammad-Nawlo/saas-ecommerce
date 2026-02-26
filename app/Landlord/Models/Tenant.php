@@ -3,15 +3,18 @@
 namespace App\Landlord\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
+use Stancl\Tenancy\Database\Concerns\HasDomains;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 class Tenant extends BaseTenant implements TenantWithDatabase
 {
     use HasDatabase;
+    use HasDomains;
     use HasFactory;
     use SoftDeletes;
 
@@ -39,6 +42,14 @@ class Tenant extends BaseTenant implements TenantWithDatabase
     protected static function newFactory(): \Database\Factories\Landlord\TenantFactory
     {
         return \Database\Factories\Landlord\TenantFactory::new();
+    }
+
+    /**
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
     }
 
     public static function getCustomColumns(): array

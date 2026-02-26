@@ -34,8 +34,8 @@ class CustomerResource extends Resource
                     ->sortable(query: fn (Builder $q, string $dir) => $q->orderBy('total_spent', $dir)),
             ])
             ->filters([])
-            ->actions([])
-            ->bulkActions([])
+            ->recordActions([])
+            ->toolbarActions([])
             ->defaultSort('order_count', 'desc')
             ->paginated([10, 25, 50]);
     }

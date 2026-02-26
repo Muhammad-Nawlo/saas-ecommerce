@@ -6,8 +6,12 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Modules\Catalog\Infrastructure\Persistence\ProductModel;
 use App\Modules\Shared\Domain\Exceptions\FeatureNotEnabledException;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -29,7 +33,7 @@ class ProductResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Product details')
+                SchemaSection::make('Product details')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()
@@ -76,11 +80,13 @@ class ProductResource extends Resource
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')->label('Active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50]);

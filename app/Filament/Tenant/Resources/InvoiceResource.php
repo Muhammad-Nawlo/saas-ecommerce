@@ -8,8 +8,11 @@ use App\Models\Invoice\Invoice;
 use App\Services\Invoice\InvoicePdfGenerator;
 use App\Services\Invoice\InvoiceService;
 use App\Modules\Shared\Domain\ValueObjects\Money;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -30,7 +33,7 @@ class InvoiceResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Invoice')
+                SchemaSection::make('Invoice')
                     ->schema([
                         Forms\Components\TextInput::make('invoice_number')->disabled(),
                         Forms\Components\Select::make('status')
@@ -85,9 +88,9 @@ class InvoiceResource extends Resource
                     Invoice::STATUS_REFUNDED => 'Refunded',
                 ]),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()->visible(fn (Invoice $r) => !$r->isLocked()),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make()->visible(fn (Invoice $r) => !$r->isLocked()),
             ])
             ->defaultSort('created_at', 'desc');
     }

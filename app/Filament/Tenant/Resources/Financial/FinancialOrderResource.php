@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources\Financial;
 
 use App\Models\Financial\FinancialOrder;
+use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -32,7 +35,7 @@ class FinancialOrderResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Order')
+                SchemaSection::make('Order')
                     ->schema([
                         Forms\Components\TextInput::make('order_number')->required()->maxLength(255),
                         Forms\Components\TextInput::make('property_id')->maxLength(36),
@@ -94,9 +97,9 @@ class FinancialOrderResource extends Resource
                         FinancialOrder::STATUS_REFUNDED => 'Refunded',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()->visible(fn (FinancialOrder $record) => !$record->isLocked()),
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make()->visible(fn (FinancialOrder $record) => !$record->isLocked()),
             ])
             ->defaultSort('created_at', 'desc');
     }

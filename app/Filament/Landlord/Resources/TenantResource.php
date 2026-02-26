@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\Landlord\Resources;
 
 use App\Landlord\Models\Tenant;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -17,9 +19,10 @@ class TenantResource extends Resource
 {
     protected static ?string $model = Tenant::class;
 
+    protected static bool $isScopedToTenant = false;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-building-office-2';
 
-    /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Platform';
 
     protected static ?int $navigationSort = 1;
@@ -28,7 +31,7 @@ class TenantResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Tenant (read-only)')
+                Section::make('Tenant (read-only)')
                     ->schema([
                         Forms\Components\TextInput::make('id')->disabled()->label('ID'),
                         Forms\Components\TextInput::make('name')->disabled(),
@@ -57,7 +60,6 @@ class TenantResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with(['domains', 'plan']))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('ID')->limit(8)->copyable()->sortable(),
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
@@ -67,7 +69,7 @@ class TenantResource extends Resource
                 Tables\Columns\TextColumn::make('domain_display')
                     ->label('Domain')
                     ->getStateUsing(fn (Tenant $r) => static::getPrimaryDomain($r)),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => $s === 'active' ? 'success' : 'danger')->sortable(),
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state): string => $state === 'active' ? 'success' : 'danger')->sortable(),
                 Tables\Columns\TextColumn::make('plan.name')->label('Plan')->sortable()->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(),
             ])
@@ -75,27 +77,27 @@ class TenantResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options(['active' => 'Active', 'suspended' => 'Suspended']),
             ])
-            ->actions([
-                Tables\Actions\Action::make('activate')
+            ->recordActions([
+                Action::make('activate')
                     ->label('Activate')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (Tenant $r) => ($r->status ?? 'active') !== 'active' && auth()->user()?->can('update', $r))
                     ->action(fn (Tenant $r) => $r->update(['status' => 'active']))
                     ->requiresConfirmation(),
-                Tables\Actions\Action::make('suspend')
+                Action::make('suspend')
                     ->label('Suspend')
                     ->icon('heroicon-o-no-symbol')
                     ->color('danger')
                     ->visible(fn (Tenant $r) => ($r->status ?? 'active') === 'active' && auth()->user()?->can('update', $r))
                     ->action(fn (Tenant $r) => $r->update(['status' => 'suspended']))
                     ->requiresConfirmation(),
-                Tables\Actions\Action::make('viewSubscription')
+                Action::make('viewSubscription')
                     ->label('Subscription')
                     ->icon('heroicon-o-credit-card')
                     ->url(fn (Tenant $r) => \App\Filament\Landlord\Resources\SubscriptionResource::getUrl('index')),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50]);
     }
@@ -110,7 +112,9 @@ class TenantResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutGlobalScopes();
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes()
+            ->with(['domains', 'plan']);
     }
 
     public static function getRelations(): array

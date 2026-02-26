@@ -7,8 +7,10 @@ namespace App\Filament\Tenant\Resources;
 use App\Models\Currency\ExchangeRate;
 use App\Models\Currency\Currency;
 use App\Services\Currency\ExchangeRateService;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -31,7 +33,7 @@ class ExchangeRateResource extends Resource
         $currencies = Currency::where('is_active', true)->orderBy('code')->pluck('code', 'id')->toArray();
         return $schema
             ->schema([
-                Forms\Components\Section::make('Rate')
+                SchemaSection::make('Rate')
                     ->schema([
                         Forms\Components\Select::make('base_currency_id')
                             ->label('From (base)')
@@ -81,8 +83,8 @@ class ExchangeRateResource extends Resource
                     ->relationship('targetCurrency', 'code')
                     ->label('Target'),
             ])
-            ->actions([
-                Tables\Actions\Action::make('setManual')
+            ->recordActions([
+                Action::make('setManual')
                     ->label('Set rate')
                     ->form([
                         Forms\Components\TextInput::make('rate')->numeric()->required()->minValue(0.00000001),

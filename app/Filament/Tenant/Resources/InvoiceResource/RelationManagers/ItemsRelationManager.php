@@ -26,6 +26,6 @@ class ItemsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('total_cents')->formatStateUsing(fn ($s) => number_format($s / 100, 2)),
             ])
             ->headerActions([])
-            ->actions([]);
+            ->recordActions([]);
     }
 }

@@ -7,8 +7,11 @@ namespace App\Filament\Landlord\Resources;
 use App\Landlord\Models\Plan;
 use App\Landlord\Models\Subscription;
 use App\Landlord\Models\Tenant;
+use Filament\Actions\Action;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -19,9 +22,10 @@ class SubscriptionResource extends Resource
 {
     protected static ?string $model = Subscription::class;
 
+    protected static bool $isScopedToTenant = false;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-text';
 
-    /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Billing';
 
     protected static ?int $navigationSort = 0;
@@ -30,7 +34,7 @@ class SubscriptionResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Subscription')
+                Section::make('Subscription')
                     ->schema([
                         Forms\Components\Select::make('tenant_id')
                             ->label('Tenant')
@@ -58,11 +62,10 @@ class SubscriptionResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with(['tenant', 'plan']))
             ->columns([
                 Tables\Columns\TextColumn::make('tenant.name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('plan.name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'active' => 'success',
                     'past_due' => 'warning',
                     'canceled', 'cancelled' => 'gray',
@@ -86,9 +89,9 @@ class SubscriptionResource extends Resource
                         'cancelled' => 'Cancelled',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('cancelAtPeriodEnd')
+            ->recordActions([
+                EditAction::make(),
+                Action::make('cancelAtPeriodEnd')
                     ->label('Cancel at period end')
                     ->icon('heroicon-o-x-circle')
                     ->color('warning')
@@ -98,7 +101,7 @@ class SubscriptionResource extends Resource
                     })
                     ->requiresConfirmation(),
             ])
-            ->bulkActions([])
+            ->toolbarActions([])
             ->defaultSort('created_at', 'desc')
             ->paginated([10, 25, 50]);
     }
@@ -113,7 +116,9 @@ class SubscriptionResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutGlobalScopes();
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes()
+            ->with(['tenant', 'plan']);
     }
 
     public static function canCreate(): bool

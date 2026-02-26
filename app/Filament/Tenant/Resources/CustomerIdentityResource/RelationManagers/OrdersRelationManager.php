@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Tenant\Resources\CustomerIdentityResource\RelationManagers;
 
+use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -29,8 +30,8 @@ class OrdersRelationManager extends RelationManager
             ->defaultSort('created_at', 'desc')
             ->filters([])
             ->headerActions([])
-            ->actions([
-                Tables\Actions\ViewAction::make()->url(fn ($record) => \App\Filament\Tenant\Resources\OrderResource::getUrl('edit', ['record' => $record])),
+            ->recordActions([
+                ViewAction::make()->url(fn ($record) => \App\Filament\Tenant\Resources\OrderResource::getUrl('edit', ['record' => $record])),
             ]);
     }
 }

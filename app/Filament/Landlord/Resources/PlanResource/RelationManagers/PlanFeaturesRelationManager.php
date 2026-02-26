@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Filament\Landlord\Resources\PlanResource\RelationManagers;
 
 use App\Landlord\Models\Feature;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 /** Manages plan_features for a plan. Value: boolean => 1/0 or true/false, limit => integer or -1. */
 class PlanFeaturesRelationManager extends RelationManager
@@ -49,20 +52,19 @@ class PlanFeaturesRelationManager extends RelationManager
             ])
             ->filters([])
             ->headerActions([
-                Tables\Actions\CreateAction::make()
+                CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
                         $data['plan_id'] = $this->getOwnerRecord()->getKey();
                         return $data;
                     }),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
-            ])
-            ->modifyQueryUsing(fn (Builder $q) => $q->with('feature'));
+            ]);
     }
 }

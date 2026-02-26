@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Landlord\Resources;
 
 use App\Landlord\Models\LandlordAuditLog;
+use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -20,10 +21,10 @@ class AuditLogResource extends Resource
 {
     protected static ?string $model = LandlordAuditLog::class;
 
-    /** @var string|\BackedEnum|null */
+    protected static bool $isScopedToTenant = false;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Platform';
 
     protected static ?int $navigationSort = 20;
@@ -64,7 +65,7 @@ class AuditLogResource extends Resource
                     ->searchable(),
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('User')
-                    ->relationship('user', 'name', fn (Builder $q) => $q->useConnection(config('tenancy.database.central_connection'))->orderBy('name'))
+                    ->options(fn () => \App\Models\User::on(config('tenancy.database.central_connection'))->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     ->preload(),
                 Tables\Filters\Filter::make('created_at')
@@ -82,12 +83,11 @@ class AuditLogResource extends Resource
                         return $query;
                     }),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
+            ->recordActions([
+                ViewAction::make(),
             ])
             ->defaultSort('created_at', 'desc')
-            ->paginated([10, 25, 50])
-            ->simplePaginate();
+            ->paginated([10, 25, 50]);
     }
 
     public static function getPages(): array

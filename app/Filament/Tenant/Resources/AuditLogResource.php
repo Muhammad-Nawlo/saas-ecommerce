@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Enums\TenantRole;
 use App\Modules\Shared\Infrastructure\Audit\TenantAuditLog;
+use Filament\Actions\ViewAction;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -75,8 +76,8 @@ class AuditLogResource extends Resource
                         return $query;
                     }),
             ])
-            ->actions([
-                Tables\Actions\ViewAction::make(),
+            ->recordActions([
+                ViewAction::make(),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([15, 30, 50]);

@@ -6,8 +6,12 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Modules\Catalog\Infrastructure\Persistence\ProductModel;
 use App\Modules\Inventory\Infrastructure\Persistence\StockItemModel;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -35,7 +39,7 @@ class InventoryResource extends Resource
 
         return $schema
             ->schema([
-                Forms\Components\Section::make('Stock')
+                SchemaSection::make('Stock')
                     ->schema([
                         Forms\Components\Select::make('product_id')
                             ->label('Product')
@@ -76,11 +80,13 @@ class InventoryResource extends Resource
                     ->boolean(),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('quantity')
             ->paginated([10, 25, 50]);

@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Filament\Tenant\Resources;
 
 use App\Modules\Catalog\Infrastructure\Persistence\CategoryModel;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -34,7 +38,7 @@ class CategoryResource extends Resource
 
         return $schema
             ->schema([
-                Forms\Components\Section::make('Category details')
+                SchemaSection::make('Category details')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()
@@ -75,11 +79,13 @@ class CategoryResource extends Resource
                 Tables\Filters\SelectFilter::make('status')
                     ->options(['active' => 'Active', 'inactive' => 'Inactive']),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('name')
             ->paginated([10, 25, 50]);

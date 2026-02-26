@@ -23,6 +23,6 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('paid_at')->dateTime(),
             ])
             ->headerActions([])
-            ->actions([]);
+            ->recordActions([]);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Filament\Tenant\Resources\MultiLocation;
 
 use App\Models\Inventory\InventoryLocationStock;
 use App\Services\Inventory\InventoryStockAdjustmentService;
+use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -58,8 +59,8 @@ class InventoryStockResource extends Resource
                     ->relationship('location', 'name')
                     ->label('Location'),
             ])
-            ->actions([
-                Tables\Actions\Action::make('adjust')
+            ->recordActions([
+                Action::make('adjust')
                     ->label('Adjust')
                     ->icon('heroicon-o-adjustments-horizontal')
                     ->form([
@@ -78,7 +79,7 @@ class InventoryStockResource extends Resource
                             $data['reason'] ?? 'Manual adjustment',
                         );
                     }),
-                Tables\Actions\Action::make('setThreshold')
+                Action::make('setThreshold')
                     ->label('Set low stock')
                     ->icon('heroicon-o-bell-alert')
                     ->form([

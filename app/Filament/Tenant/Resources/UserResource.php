@@ -6,8 +6,12 @@ namespace App\Filament\Tenant\Resources;
 
 use App\Constants\TenantPermissions;
 use App\Filament\Tenant\Resources\RoleResource;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section as SchemaSection;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -46,7 +50,7 @@ class UserResource extends Resource
 
         return $schema
             ->schema([
-                Forms\Components\Section::make('User')
+                SchemaSection::make('User')
                     ->schema([
                         Forms\Components\TextInput::make('name')
                             ->required()
@@ -93,11 +97,13 @@ class UserResource extends Resource
                     ->separator(','),
             ])
             ->filters([])
-            ->actions([
-                Tables\Actions\EditAction::make(),
+            ->recordActions([
+                EditAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
             ])
             ->defaultSort('name');
     }
