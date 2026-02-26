@@ -19,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(EnsureSystemNotReadOnly::class);
+        // Required by Tenancy UniversalRoutes: empty group used as a flag so routes work on central & tenant
+        $middleware->group('universal', []);
         $middleware->alias([
             'feature' => CheckTenantFeature::class,
             'subscription.active' => EnsureTenantSubscriptionIsActive::class,
