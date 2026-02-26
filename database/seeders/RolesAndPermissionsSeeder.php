@@ -72,10 +72,10 @@ final class RolesAndPermissionsSeeder extends Seeder
             Permission::firstOrCreate(['name' => $name, 'guard_name' => self::GUARD_WEB]);
         }
 
-        $superAdmin = Role::firstOrCreate(['name' => 'super-admin', 'guard_name' => self::GUARD_WEB]);
+        $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => self::GUARD_WEB]);
         $superAdmin->givePermissionTo(Permission::all());
 
-        $landlordManager = Role::firstOrCreate(['name' => 'landlord-manager', 'guard_name' => self::GUARD_WEB]);
+        $landlordManager = Role::firstOrCreate(['name' => 'landlord_manager', 'guard_name' => self::GUARD_WEB]);
         $landlordManager->givePermissionTo([
             'manage tenants', 'manage plans', 'manage billing', 'view landlord reports', 'manage subscriptions',
         ]);
@@ -86,7 +86,7 @@ final class RolesAndPermissionsSeeder extends Seeder
      */
     public function assignSuperAdminTo(User $user): void
     {
-        $user->assignRole('super-admin');
+        $user->assignRole('super_admin');
     }
 
     /**

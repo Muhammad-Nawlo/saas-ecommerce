@@ -17,7 +17,7 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     $this->tenant = Tenant::create(['name' => 'MC Test', 'data' => []]);
     $this->tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
         Artisan::call('db:seed', ['--class' => \Database\Seeders\CurrencySeeder::class]);
     });
     tenancy()->initialize($this->tenant);

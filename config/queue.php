@@ -14,7 +14,8 @@ return [
     */
 
     /*
-    | Production: QUEUE_CONNECTION=redis with Horizon. See docs/DEPLOYMENT_CHECKLIST.md.
+    | Production must use QUEUE_CONNECTION=redis. Horizon requires the redis driver to process jobs.
+    | With QUEUE_CONNECTION=database, Horizon will not process jobs. See docs/DEPLOYMENT_CHECKLIST.md.
     | Named queues: default, financial (high priority), audit, low.
     */
     'default' => env('QUEUE_CONNECTION', 'database'),

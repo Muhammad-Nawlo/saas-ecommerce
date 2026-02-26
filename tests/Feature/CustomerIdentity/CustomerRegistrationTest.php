@@ -13,6 +13,7 @@ beforeEach(function (): void {
     $this->tenant = Tenant::create(['name' => 'Test Store', 'data' => []]);
     $this->tenant->run(function (): void {
         Artisan::call('migrate', [
+            '--database' => 'tenant',
             '--path' => database_path('migrations/tenant'),
             '--force' => true,
         ]);

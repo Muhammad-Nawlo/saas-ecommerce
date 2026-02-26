@@ -65,7 +65,7 @@ test('full financial integrity: multi-currency tenant, checkout, payment snapsho
 
     $tenant = Tenant::create(['name' => 'Financial Integrity Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
         Artisan::call('db:seed', ['--class' => \Database\Seeders\CurrencySeeder::class]);
     });
 
@@ -173,7 +173,7 @@ test('currency mismatch throws CurrencyMismatchException', function (): void {
 test('financial order immutable after lock: mutation throws FinancialOrderLockedException', function (): void {
     $tenant = Tenant::create(['name' => 'Immutable Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 

@@ -19,6 +19,7 @@ function createTenantForSnapshot(): Tenant
     $tenant = \App\Landlord\Models\Tenant::create(['name' => 'Snapshot Test', 'data' => []]);
     $tenant->run(function (): void {
         Artisan::call('migrate', [
+            '--database' => 'tenant',
             '--path' => database_path('migrations/tenant'),
             '--force' => true,
         ]);

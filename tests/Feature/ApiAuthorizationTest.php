@@ -15,7 +15,7 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     $this->tenant = Tenant::create(['name' => 'Auth Test Tenant', 'data' => []]);
     $this->tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     Domain::create(['domain' => 'tenant1', 'tenant_id' => $this->tenant->id]);
 });

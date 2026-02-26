@@ -38,12 +38,12 @@ test('rate limiter allows requests within limit', function (): void {
 test('checkout endpoint returns 429 when rate limit exceeded', function (): void {
     $tenant = Tenant::create(['name' => 'Rate Limit Tenant', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     Domain::create(['domain' => 'tenant1', 'tenant_id' => $tenant->id]);
     RateLimiter::clear('checkout');
 
-    $host = 'tenant1.sass-ecommerce.test';
+    $host = 'tenant1.saas-ecommerce.test';
     for ($i = 0; $i < 31; $i++) {
         $response = $this->withServerVariables(['HTTP_HOST' => $host])
             ->postJson('/api/v1/checkout', [

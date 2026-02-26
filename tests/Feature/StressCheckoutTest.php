@@ -59,7 +59,7 @@ test('stress: create multiple orders and confirm payments — no duplicate invoi
 
     $tenant = Tenant::create(['name' => 'Stress Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
         if (class_exists(\Database\Seeders\CurrencySeeder::class)) {
             Artisan::call('db:seed', ['--class' => \Database\Seeders\CurrencySeeder::class]);
         }

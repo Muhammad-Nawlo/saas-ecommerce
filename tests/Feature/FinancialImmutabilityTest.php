@@ -20,7 +20,7 @@ uses(RefreshDatabase::class);
 test('FinancialOrder throws when mutating locked order', function (): void {
     $tenant = Tenant::create(['name' => 'Immutable FO', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 
@@ -46,7 +46,7 @@ test('FinancialOrder throws when mutating locked order', function (): void {
 test('Invoice throws when mutating total after issued', function (): void {
     $tenant = Tenant::create(['name' => 'Immutable Inv', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 
@@ -71,7 +71,7 @@ test('Invoice throws when mutating total after issued', function (): void {
 test('PaymentModel throws when mutating amount after confirmed', function (): void {
     $tenant = Tenant::create(['name' => 'Immutable Pay', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 

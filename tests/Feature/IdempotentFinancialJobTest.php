@@ -18,7 +18,7 @@ test('dispatching OrderPaid twice does not create duplicate invoice', function (
 
     $tenant = Tenant::create(['name' => 'Idempotent Job Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 

@@ -10,7 +10,8 @@ use Illuminate\Support\Str;
  * Install with: composer require laravel/horizon
  * Then: php artisan horizon:install (optional, to merge with this file)
  *
- * Production: Use QUEUE_CONNECTION=redis. Run Horizon with: php artisan horizon
+ * Production: Set QUEUE_CONNECTION=redis and run Horizon with: php artisan horizon.
+ * Horizon requires the redis queue driver; with database or sync driver, Horizon will not process jobs.
  * Worker tuning: Increase maxProcesses for high throughput; keep financial/audit
  * workers conservative to avoid duplicate processing under retries.
  */

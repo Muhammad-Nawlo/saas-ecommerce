@@ -15,7 +15,7 @@ return [
      * The list of domains hosting your central app (landlord/admin).
      * Set via CENTRAL_DOMAINS env (comma-separated). Safe for config:cache.
      */
-    'central_domains' => array_map('trim', array_filter(explode(',', env('CENTRAL_DOMAINS', '127.0.0.1,localhost,sass-ecommerce.test')))),
+    'central_domains' => array_map('trim', array_filter(explode(',', env('CENTRAL_DOMAINS', '127.0.0.1,localhost,saas-ecommerce.test')))),
 
     /**
      * Tenancy bootstrappers are executed when tenancy is initialized.
@@ -33,9 +33,10 @@ return [
 
     /**
      * Database tenancy config. Used by DatabaseTenancyBootstrapper.
+     * Set DB_CONNECTION in .env (e.g. sqlite, mysql). Falls back to config(database.default) when unset so tenancy revert works.
      */
     'database' => [
-        'central_connection' => env('DB_CONNECTION', 'central'),
+        'central_connection' => env('DB_CONNECTION') ?? config('database.default'),
 
         /**
          * Connection used as a "template" for the dynamically created tenant database connection.

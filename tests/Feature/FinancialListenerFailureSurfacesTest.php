@@ -19,7 +19,7 @@ uses(RefreshDatabase::class);
 test('sync financial listener failure surfaces', function (): void {
     $tenant = Tenant::create(['name' => 'Listener Fail', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 

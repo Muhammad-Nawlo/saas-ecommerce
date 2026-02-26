@@ -39,6 +39,7 @@ final class TenantTestHelper
         $tenant = self::createTenant($attributes);
         $tenant->run(function () use ($withRoleSeeder): void {
             Artisan::call('migrate', [
+                '--database' => 'tenant',
                 '--path' => database_path('migrations/tenant'),
                 '--force' => true,
             ]);

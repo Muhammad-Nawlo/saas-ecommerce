@@ -19,7 +19,7 @@ uses(RefreshDatabase::class);
 test('reconciliation returns no issues when ledger and order are consistent', function (): void {
     $tenant = Tenant::create(['name' => 'Reconcile', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 
@@ -66,7 +66,7 @@ test('reconciliation returns no issues when ledger and order are consistent', fu
 test('reconciliation detects unbalanced ledger', function (): void {
     $tenant = Tenant::create(['name' => 'Reconcile Unbal', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($tenant);
 

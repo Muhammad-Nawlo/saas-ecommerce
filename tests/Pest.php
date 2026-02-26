@@ -31,6 +31,17 @@ pest()->extend(Tests\TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
+// Restore central DB context after each test so RefreshDatabase and next tests use central, not a tenant DB.
+afterEach(function (): void {
+    try {
+        if (app()->bound(\Stancl\Tenancy\Tenancy::class) && tenancy()->initialized) {
+            tenancy()->end();
+        }
+    } catch (\Throwable) {
+        // Ignore if app/tenancy not available (e.g. unit tests).
+    }
+});
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

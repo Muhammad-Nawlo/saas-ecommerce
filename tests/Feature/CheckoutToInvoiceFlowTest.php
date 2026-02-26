@@ -62,7 +62,7 @@ test('checkout to invoice flow: order paid, financial order synced, invoice and 
 
     $tenant = Tenant::create(['name' => 'Checkout Invoice Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
         if (class_exists(\Database\Seeders\CurrencySeeder::class)) {
             Artisan::call('db:seed', ['--class' => \Database\Seeders\CurrencySeeder::class]);
         }
@@ -143,7 +143,7 @@ test('double payment confirm is idempotent: no duplicate financial order or invo
 
     $tenant = Tenant::create(['name' => 'Idempotent Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
         if (class_exists(\Database\Seeders\CurrencySeeder::class)) {
             Artisan::call('db:seed', ['--class' => \Database\Seeders\CurrencySeeder::class]);
         }

@@ -12,15 +12,21 @@ use Tests\Support\TenantTestHelper;
 
 uses(RefreshDatabase::class);
 
+afterEach(function (): void {
+    if (tenancy()->initialized) {
+        tenancy()->end();
+    }
+});
+
 test('financial orders are isolated per tenant', function (): void {
     $tenantA = Tenant::create(['name' => 'Tenant A', 'data' => []]);
     $tenantB = Tenant::create(['name' => 'Tenant B', 'data' => []]);
 
     $tenantA->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     $tenantB->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
 
     tenancy()->initialize($tenantA);

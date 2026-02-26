@@ -15,7 +15,7 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     $this->tenant = Tenant::create(['name' => 'Snapshot Test', 'data' => []]);
     $this->tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
     });
     tenancy()->initialize($this->tenant);
 });

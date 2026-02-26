@@ -19,6 +19,8 @@
 /storage/*.key
 /storage/pail
 /vendor
+/database/testing.sqlite
+/database/tenant_*
 Homestead.json
 Homestead.yaml
 Thumbs.db

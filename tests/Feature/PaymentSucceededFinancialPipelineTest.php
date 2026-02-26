@@ -35,7 +35,7 @@ test('PaymentSucceeded creates FinancialOrder, Invoice and Ledger transaction', 
 
     $tenant = Tenant::create(['name' => 'Pipeline Test', 'data' => []]);
     $tenant->run(function (): void {
-        Artisan::call('migrate', ['--path' => database_path('migrations/tenant'), '--force' => true]);
+        Artisan::call('migrate', ['--database' => 'tenant', '--path' => database_path('migrations/tenant'), '--force' => true]);
         if (class_exists(\Database\Seeders\CurrencySeeder::class)) {
             Artisan::call('db:seed', ['--class' => \Database\Seeders\CurrencySeeder::class]);
         }
