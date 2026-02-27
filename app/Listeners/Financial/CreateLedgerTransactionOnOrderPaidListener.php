@@ -10,8 +10,15 @@ use App\Services\Ledger\LedgerService;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Creates a balanced double-entry ledger transaction when an order is paid.
- * Idempotent: skips if a ledger transaction already exists for this financial order.
+ * CreateLedgerTransactionOnOrderPaidListener
+ *
+ * Creates a balanced double-entry ledger transaction (CASH debit, REV/TAX credit) when OrderPaid is fired.
+ * Idempotent: skips if ledger transaction already exists for this financial_order. Uses LedgerService.
+ * Critical for financial integrity; reconciliation checks debits == credits per transaction.
+ *
+ * Who dispatches OrderPaid: SyncFinancialOrderOnPaymentSucceededListener and payment confirmation flow.
+ *
+ * Assumes tenant context. Writes ledger_transactions, ledger_entries (tenant DB). Amounts in cents.
  */
 final class CreateLedgerTransactionOnOrderPaidListener
 {
@@ -20,6 +27,13 @@ final class CreateLedgerTransactionOnOrderPaidListener
     ) {
     }
 
+    /**
+     * Create balanced ledger transaction for order paid. Skips if tenant missing or accounts (CASH, REV, TAX) missing or existing tx.
+     *
+     * @param OrderPaid $event
+     * @return void
+     * Side effects: Writes LedgerTransaction, LedgerEntry; log. Requires tenant context.
+     */
     public function handle(OrderPaid $event): void
     {
         $order = $event->order;

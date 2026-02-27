@@ -10,8 +10,13 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Blocks access for suspended tenants. Use on Tenant Filament panel.
- * If tenant.status !== 'active': logout and redirect to billing with message.
+ * CheckTenantStatus (Middleware)
+ *
+ * Blocks access for suspended tenants. Use on Tenant Filament panel (e.g. TenantPanelProvider).
+ * If tenant exists and status is 'suspended': logout, invalidate session, redirect to tenant login with error message.
+ * Otherwise allows request to proceed. Tenant context is set by InitializeTenancyByDomain (domain-based).
+ *
+ * Does not access central DB for tenant list; only checks current tenant() object. Does not write financial data.
  */
 class CheckTenantStatus
 {

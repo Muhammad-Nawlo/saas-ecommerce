@@ -9,6 +9,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
+ * FinancialTransaction
+ *
+ * Records a single financial transaction (CREDIT for payment, REFUND for refund). Created by
+ * CreateFinancialTransactionListener on OrderPaid (TYPE_CREDIT) and OrderRefunded (TYPE_REFUND).
+ * Reconciliation (FinancialReconciliationService) checks that sum of completed CREDIT transactions
+ * per order equals order total. Immutable once created; no float; amount_cents only.
+ *
+ * Assumes tenant context. Tenant DB. Belongs to FinancialOrder (order_id).
+ *
  * @property string $id
  * @property string|null $tenant_id
  * @property string|null $order_id

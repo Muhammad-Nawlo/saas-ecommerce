@@ -10,8 +10,16 @@ use App\Services\Invoice\InvoiceService;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Creates invoice when financial order is marked paid. Idempotent: skips if invoice already exists.
- * Runs sync to preserve tenant context.
+ * CreateInvoiceOnOrderPaidListener
+ *
+ * Creates draft invoice from FinancialOrder snapshot when OrderPaid is fired. Only runs when
+ * config('invoicing.auto_generate_invoice_on_payment') is true. Idempotent: skips if invoice
+ * already exists for the order. Uses InvoiceService::createFromOrder. Critical for invoicing integrity.
+ *
+ * Who dispatches OrderPaid: SyncFinancialOrderOnPaymentSucceededListener (after payment confirmation) and
+ * order payment flow that marks FinancialOrder paid.
+ *
+ * Assumes tenant context. Writes invoices, invoice_items (tenant DB).
  */
 class CreateInvoiceOnOrderPaidListener
 {
@@ -19,6 +27,14 @@ class CreateInvoiceOnOrderPaidListener
         private InvoiceService $invoiceService,
     ) {}
 
+    /**
+     * Create draft invoice from event order snapshot when auto_generate is enabled and no invoice exists.
+     *
+     * @param OrderPaid $event
+     * @return void
+     * @throws \Throwable Re-throws from InvoiceService::createFromOrder.
+     * Side effects: Writes Invoice, InvoiceItem; log. Requires tenant context.
+     */
     public function handle(OrderPaid $event): void
     {
         if (!config('invoicing.auto_generate_invoice_on_payment', false)) {

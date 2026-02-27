@@ -11,7 +11,15 @@ use App\Modules\Shared\Infrastructure\Audit\AuditLogger;
 use Illuminate\Support\Facades\Request;
 
 /**
- * Audit logs for order locked/paid/refunded. Runs sync so tenant context is available for logging.
+ * AuditLogOrderStatusListener (Event Subscriber)
+ *
+ * Writes structured tenant audit log entries for OrderLocked, OrderPaid, OrderRefunded. Does not write
+ * financial data; audit only. Runs synchronously so tenant context is available for AuditLogger.
+ *
+ * Who dispatches: OrderLocked from OrderLockService; OrderPaid from SyncFinancialOrderOnPaymentSucceededListener;
+ * OrderRefunded from refund flow.
+ *
+ * Assumes tenant context. Writes tenant_audit_logs (tenant DB).
  */
 class AuditLogOrderStatusListener
 {

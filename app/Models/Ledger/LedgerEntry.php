@@ -9,7 +9,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Single ledger entry (debit or credit). Immutable.
+ * LedgerEntry
+ *
+ * Single double-entry ledger line (debit or credit). Immutable once created. Part of LedgerTransaction;
+ * reconciliation (FinancialReconciliationService) ensures debits == credits per transaction.
+ * Amount in cents only (no float). Used for order paid (CASH debit, REV/TAX credit) and refund reversal (CASH credit, REV/TAX debit).
+ *
+ * Assumes tenant context. Tenant DB.
  */
 class LedgerEntry extends Model
 {

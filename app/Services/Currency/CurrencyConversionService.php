@@ -10,7 +10,13 @@ use App\Modules\Shared\Domain\ValueObjects\Money;
 use InvalidArgumentException;
 
 /**
- * Convert Money to target currency using rate snapshot. Rounds per tenant strategy.
+ * CurrencyConversionService
+ *
+ * Converts Money to target currency using exchange rate (current or historical). Used when locking
+ * financial orders (base/display currency), displaying amounts, and storing rate snapshots.
+ * Rounding uses tenant's rounding_strategy (TenantCurrencySetting). All amounts in minor units;
+ * convertWithSnapshot returns rate_snapshot for immutable storage (order/invoice). Assumes tenant
+ * context for tenant settings. Does not write financial order/invoice; used by OrderCurrencySnapshotService.
  */
 final class CurrencyConversionService
 {

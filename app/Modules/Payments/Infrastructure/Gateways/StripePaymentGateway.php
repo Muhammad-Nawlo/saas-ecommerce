@@ -11,6 +11,15 @@ use Stripe\PaymentIntent;
 use Stripe\Refund;
 use Stripe\Stripe;
 
+/**
+ * StripePaymentGateway
+ *
+ * PaymentGateway implementation for Stripe: create PaymentIntent, confirm (retrieve and validate status),
+ * refund. Uses Money value object (minor units); no float. External API calls only; no DB writes in this class.
+ * Used by PaymentService via PaymentGatewayResolver. Api key from config('services.stripe.secret').
+ *
+ * Side effects: Stripe API (create, retrieve, refund). Tenant context not required for Stripe; payment record is tenant-scoped in caller.
+ */
 final class StripePaymentGateway implements PaymentGateway
 {
     public function __construct()

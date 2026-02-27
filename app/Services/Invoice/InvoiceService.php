@@ -16,8 +16,12 @@ use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
- * Invoice lifecycle: create from order (draft) → issue (locked) → apply payments / credit notes.
- * All totals from snapshot; no recalculation after issuance.
+ * InvoiceService
+ *
+ * Invoice lifecycle: create from FinancialOrder snapshot (draft), issue (lock, set issued_at), apply payments,
+ * create credit notes, void. All totals from snapshot; no recalculation after issuance. Uses Money for amounts;
+ * amounts in minor units (cents). Assumes tenant context. Writes invoices, invoice_items, invoice_payments, credit_notes.
+ * createFromOrder requires order locked with snapshot; issue sets snapshot_hash (tamper detection).
  */
 final class InvoiceService
 {
@@ -27,7 +31,12 @@ final class InvoiceService
     ) {}
 
     /**
-     * Create draft invoice from order snapshot. Order must be locked (have snapshot) and paid or pending.
+     * Create draft invoice from FinancialOrder snapshot. Order must be locked (have snapshot) and status paid or pending.
+     *
+     * @param FinancialOrder $order Locked financial order with snapshot.
+     * @return Invoice Created draft invoice with items from snapshot.
+     * @throws InvalidArgumentException When order not locked, no snapshot, or status not paid/pending; or no tenant context.
+     * Side effects: Writes Invoice, InvoiceItem; audit log. Runs in DB transaction. Requires tenant context.
      */
     public function createFromOrder(FinancialOrder $order): Invoice
     {
@@ -105,7 +114,12 @@ final class InvoiceService
     }
 
     /**
-     * Issue invoice: lock, set issued_at, status = issued. Immutable after this.
+     * Issue invoice: set status issued, issued_at, locked_at, snapshot hash. Immutable after this.
+     *
+     * @param Invoice $invoice Draft invoice.
+     * @return void
+     * @throws InvalidArgumentException When already issued or not draft.
+     * Side effects: Updates invoice (status, issued_at, locked_at, snapshot, snapshot_hash); audit log; Instrumentation. Requires tenant context.
      */
     public function issue(Invoice $invoice): void
     {
@@ -150,7 +164,14 @@ final class InvoiceService
     }
 
     /**
-     * Apply payment. Cannot exceed remaining balance. Uses Money VO.
+     * Apply payment to issued invoice. Cannot exceed remaining balance; currency must match.
+     *
+     * @param Invoice $invoice Issued invoice (not void).
+     * @param Money $amount Payment amount (minor units).
+     * @param string|null $financialTransactionId Optional link to financial_transaction.
+     * @return void
+     * @throws InvalidArgumentException When invoice not issued/void, currency mismatch, amount exceeds balance, or amount <= 0.
+     * Side effects: Creates InvoicePayment; may set invoice status to paid or partially_paid; audit log. Runs in DB transaction. Requires tenant context.
      */
     public function applyPayment(Invoice $invoice, Money $amount, ?string $financialTransactionId = null): void
     {
@@ -207,7 +228,14 @@ final class InvoiceService
     }
 
     /**
-     * Create credit note. Cannot exceed invoice total. Snapshots invoice totals.
+     * Create credit note for issued invoice. Cannot exceed invoice total minus existing credits; currency must match.
+     *
+     * @param Invoice $invoice Issued invoice (not void).
+     * @param Money $amount Credit amount (minor units).
+     * @param string $reason Reason for credit note.
+     * @return CreditNote Created credit note.
+     * @throws InvalidArgumentException When invoice not issued/void, currency mismatch, amount invalid or exceeds max credit.
+     * Side effects: Creates CreditNote; may set invoice status to refunded; audit log. Runs in DB transaction. Requires tenant context.
      */
     public function createCreditNote(Invoice $invoice, Money $amount, string $reason): CreditNote
     {
@@ -270,7 +298,12 @@ final class InvoiceService
     }
 
     /**
-     * Void invoice. Only draft or issued can be voided.
+     * Void invoice. Only draft, issued, or partially_paid can be voided.
+     *
+     * @param Invoice $invoice Invoice to void.
+     * @return void
+     * @throws InvalidArgumentException When status does not allow void.
+     * Side effects: Updates invoice status to void, sets locked_at if not set; audit log. Requires tenant context.
      */
     public function void(Invoice $invoice): void
     {

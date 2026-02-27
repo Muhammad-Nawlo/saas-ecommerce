@@ -9,6 +9,19 @@ use App\Landlord\Models\Subscription;
 use App\Modules\Shared\Domain\Exceptions\NoActiveSubscriptionException;
 use Illuminate\Support\Facades\Cache;
 
+/**
+ * FeatureResolver
+ *
+ * Resolves plan features for the current tenant from central DB (Subscription, Plan, plan_features, features).
+ * Used by tenant_feature() and tenant_limit() helpers; called from tenant context (tenant('id') must be set).
+ * Results are cached per tenant (key: tenant:{id}:features, TTL 600s) to avoid repeated central DB reads.
+ * invalidateCacheForTenant / invalidateCurrentTenantCache clear cache when plan/subscription changes.
+ *
+ * Central DB access: getSubscriptionForTenant and getFeatureByCode use config tenancy.database.central_connection.
+ * Cache is tenant-isolated (key includes tenant id); no cross-tenant leakage.
+ *
+ * Does not write financial data. Throws NoActiveSubscriptionException when tenant has no active subscription.
+ */
 final class FeatureResolver
 {
     private const string CACHE_KEY_PREFIX = 'tenant:';

@@ -12,7 +12,15 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Creates a balanced reversing ledger transaction when an order is refunded.
+ * CreateLedgerReversalOnOrderRefundedListener
+ *
+ * Creates a balanced reversing ledger transaction (CASH credit, REV/TAX debit) when OrderRefunded is fired.
+ * Idempotent: tenant_cache_key-based idempotency (24h TTL) prevents double processing. Proportional split
+ * of refund to revenue/tax. Critical for financial integrity; reconciliation checks debits == credits.
+ *
+ * Who dispatches OrderRefunded: Refund flow (e.g. RefundService or payment refund handler).
+ *
+ * Assumes tenant context. Writes ledger_transactions, ledger_entries (tenant DB). Amounts in cents.
  */
 final class CreateLedgerReversalOnOrderRefundedListener
 {
@@ -23,6 +31,13 @@ final class CreateLedgerReversalOnOrderRefundedListener
 
     private const IDEMPOTENCY_TTL_SECONDS = 86400;
 
+    /**
+     * Create reversing ledger transaction for refund. Skips if tenant/amount invalid or accounts missing or idempotency hit.
+     *
+     * @param OrderRefunded $event
+     * @return void
+     * Side effects: Writes LedgerTransaction, LedgerEntry; Cache set; Instrumentation; log. Requires tenant context.
+     */
     public function handle(OrderRefunded $event): void
     {
         $order = $event->order;

@@ -15,6 +15,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Financial order. Immutable when locked_at is set.
  *
+ * Snapshot logic: On lock (OrderLockService), snapshot (items, totals, tax_lines, applied_promotions) and snapshot_hash
+ * are set. LOCKED_ATTRIBUTES cannot be changed after status is no longer draft; updating triggers
+ * FinancialOrderLockedException and revert. Hash validation: verifySnapshotIntegrity() recomputes hash from
+ * current snapshot/immutable fields and compares to snapshot_hash; logs to security channel on mismatch (no auto-correct).
+ * Float is forbidden: all amounts are integer cents (minor units).
+ *
+ * Assumes tenant context (tenant_id scoped). Used by Invoice (createFromOrder), Financial listeners, reconciliation.
+ *
  * @property string $id
  * @property string|null $operational_order_id
  * @property string|null $tenant_id

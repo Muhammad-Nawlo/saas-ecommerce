@@ -5,6 +5,33 @@ declare(strict_types=1);
 namespace App\Modules\Checkout\Application\Services;
 
 use App\Modules\Checkout\Application\Contracts\CartService;
+
+/**
+ * CheckoutOrchestrator
+ *
+ * Coordinates the full checkout process:
+ * - Validates cart (exists, has email, has items)
+ * - Validates stock (InventoryService)
+ * - Reserves or allocates inventory (simple reserve or multi-location allocation via tenant_feature)
+ * - Creates Order from cart (OrderService)
+ * - Applies promotions (PromotionResolverService, PromotionEvaluationService) and updates order totals
+ * - Creates Payment (PaymentService) and returns client secret for Stripe
+ * - Marks cart converted (CartService)
+ *
+ * This class acts as an application service. Used by CheckoutController (API).
+ *
+ * Assumes tenant context is already initialized (e.g. by route middleware).
+ *
+ * Side effects:
+ * - Writes Order and OrderItem records (tenant DB)
+ * - Writes Payment record (tenant DB)
+ * - Calls Stripe (create payment intent) via PaymentService
+ * - Reserves/releases inventory; may allocate when multi_location_inventory is enabled
+ * - Dispatches domain events via Order/Payment modules (not directly)
+ *
+ * Must be executed inside DB transaction for order creation and payment confirmation.
+ * Uses TransactionManager internally for checkout() and confirmPayment().
+ */
 use App\Modules\Checkout\Application\Contracts\InventoryService;
 use App\Modules\Checkout\Application\Contracts\OrderService;
 use App\Modules\Checkout\Application\DTOs\CheckoutResponseDTO;
@@ -34,6 +61,17 @@ final readonly class CheckoutOrchestrator
     ) {
     }
 
+    /**
+     * Run full checkout: validate cart and stock, reserve/allocate inventory, create order, apply promotions, create payment, mark cart converted.
+     *
+     * @param \App\Modules\Checkout\Application\Commands\CheckoutCartCommand $command Cart ID, customer ID, payment provider, optional coupon codes.
+     * @return CheckoutResponseDTO Order ID, payment ID, client secret, amount, currency.
+     * @throws CheckoutFailedException When cart not found, no email, or other failure.
+     * @throws EmptyCartException When cart has no items.
+     * @throws StockValidationException When stock insufficient.
+     * @throws PaymentInitializationException When payment creation fails (releases reserved stock).
+     * Side effects: Writes Order, OrderItem, Payment; reserves/allocates stock; marks cart converted. Reads central DB only via tenant_feature('multi_location_inventory'). Must run in tenant context.
+     */
     public function checkout(\App\Modules\Checkout\Application\Commands\CheckoutCartCommand $command): CheckoutResponseDTO
     {
         $cart = $this->cartService->getActiveCart($command->cartId);
@@ -161,6 +199,14 @@ final readonly class CheckoutOrchestrator
         }
     }
 
+    /**
+     * Confirm a checkout payment after client-side Stripe confirmation. Runs in DB transaction.
+     *
+     * @param \App\Modules\Checkout\Application\Commands\ConfirmCheckoutPaymentCommand $command Payment ID and provider payment ID (e.g. Stripe PI id).
+     * @return void
+     * @throws \Throwable Re-thrown from PaymentService (e.g. already processed).
+     * Side effects: Updates payment status, may dispatch PaymentSucceeded and downstream listeners (Financial, Invoice, OrderPaid). Requires tenant context.
+     */
     public function confirmPayment(\App\Modules\Checkout\Application\Commands\ConfirmCheckoutPaymentCommand $command): void
     {
         $this->transactionManager->run(function () use ($command): void {

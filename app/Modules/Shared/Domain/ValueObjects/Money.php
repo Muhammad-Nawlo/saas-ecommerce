@@ -8,8 +8,13 @@ use App\Modules\Shared\Domain\Exceptions\CurrencyMismatchException;
 use App\Modules\Shared\Domain\Exceptions\InvalidValueObject;
 
 /**
- * Single canonical money value object. Amount in minor units (cents) only; no float math.
- * All arithmetic enforces same currency; throws CurrencyMismatchException on mismatch.
+ * Money (Value Object)
+ *
+ * Single canonical money value object. Amount in minor units (cents) only; float is forbidden for monetary math.
+ * All arithmetic (add, subtract) enforces same currency; throws CurrencyMismatchException on mismatch.
+ * Used by Payments, Checkout, InvoiceService, Financial flows. Immutable (readonly).
+ *
+ * No side effects. No tenant or DB; stateless.
  */
 final readonly class Money
 {
@@ -19,6 +24,14 @@ final readonly class Money
     ) {
     }
 
+    /**
+     * Create Money from minor units (cents) and ISO 4217 3-letter currency code.
+     *
+     * @param int $amount Amount in minor units (e.g. cents).
+     * @param string $currency 3-letter currency code (e.g. USD); normalized to uppercase.
+     * @return self
+     * @throws InvalidValueObject When currency length is not 3.
+     */
     public static function fromMinorUnits(int $amount, string $currency): self
     {
         $currency = strtoupper(trim($currency));

@@ -16,6 +16,17 @@ use Stancl\Tenancy\Listeners;
 use Stancl\Tenancy\Middleware;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 
+/**
+ * TenancyServiceProvider
+ *
+ * Registers Stancl Tenancy: tenant lifecycle events (TenantCreated → CreateDatabase, MigrateDatabase;
+ * TenantDeleted → DeleteDatabase), tenancy initialization (InitializeTenancyByDomain, PreventAccessFromCentralDomains),
+ * and BootstrapTenancy / RevertToCentralContext on TenancyInitialized / TenancyEnded. Maps tenant routes (routes/tenant.php)
+ * and makes tenancy middleware highest priority. Livewire and FilePreview use InitializeTenancyByDomain so tenant
+ * context is set for dashboard. Central DB is used when not in tenant context; tenant DB is switched by Stancl
+ * bootstrappers. Cache is isolated per tenant via Stancl CacheTenancyBootstrapper (tag-based). Feature flags
+ * are resolved via FeatureResolver reading central DB (Subscription, Plan) and cached per tenant (tenant:{id}:features).
+ */
 class TenancyServiceProvider extends ServiceProvider
 {
     // By default, no namespace is used to support the callable array syntax.

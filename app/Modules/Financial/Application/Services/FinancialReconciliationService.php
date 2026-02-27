@@ -12,8 +12,18 @@ use App\Models\Ledger\LedgerTransaction;
 use Illuminate\Support\Facades\Log;
 
 /**
+ * FinancialReconciliationService
+ *
  * Detects financial inconsistencies across financial_orders, invoices, payments, ledger.
- * Does NOT auto-fix; only logs structured errors for investigation.
+ * Does NOT auto-fix; only logs structured errors for investigation. Used by ReconcileFinancialDataJob
+ * (scheduler) which initializes tenancy per tenant and calls reconcile().
+ *
+ * Checks: (1) Ledger balanced (debits == credits per LedgerTransaction for order/refund references),
+ * (2) Invoice total vs financial_order total for orders that have an invoice,
+ * (3) For paid orders: sum of completed CREDIT financial_transactions equals order total.
+ *
+ * Assumes tenant context when called (tenantId can be passed or resolved from tenant()).
+ * Reads only; no DB writes. All amounts in cents (integer).
  */
 final class FinancialReconciliationService
 {
@@ -22,10 +32,11 @@ final class FinancialReconciliationService
     private const MISMATCH_PAYMENTS_SUM = 'payments_sum_mismatch';
 
     /**
-     * Run reconciliation for the current tenant context.
-     * Call from a job or command that has already initialized tenancy.
+     * Run reconciliation for the current tenant context (or given tenantId). Call from a job or command that has already initialized tenancy.
      *
-     * @return array<string, mixed> List of detected issues (for testing/reporting)
+     * @param string|null $tenantId Optional; defaults to tenant() key. Empty string = all tenants (when used with loop).
+     * @return array<string, mixed> List of detected issues (payloads with tenant_id, mismatch_type, etc.); empty if none.
+     * Side effects: Logs to stack channel on each mismatch. Does not modify DB. Reads tenant DB (financial_orders, financial_transactions, invoices, ledger_*).
      */
     public function reconcile(?string $tenantId = null): array
     {
@@ -47,9 +58,12 @@ final class FinancialReconciliationService
     }
 
     /**
-     * Run reconciliation and throw if any issues are found.
+     * Run reconciliation and throw if any issues are found. Used for tests or strict validation.
      *
-     * @throws \RuntimeException
+     * @param string|null $tenantId Optional tenant scope.
+     * @return void
+     * @throws \RuntimeException When reconcile() returns non-empty issues.
+     * Side effects: Same as reconcile(); throws instead of returning issues.
      */
     public function verify(?string $tenantId = null): void
     {

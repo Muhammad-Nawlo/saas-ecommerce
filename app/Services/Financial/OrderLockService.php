@@ -15,9 +15,15 @@ use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
- * Locks an order: computes totals, snapshots items and tax, sets locked_at.
- * After lock the order is immutable. Call when transitioning draft → pending.
- * Also fills currency snapshot (base/display amounts) when multi-currency is used.
+ * OrderLockService
+ *
+ * Locks a FinancialOrder: computes tax (TaxCalculator), sets subtotal/tax/discount/total, builds snapshot,
+ * sets locked_at and status pending, fills currency snapshot (OrderCurrencySnapshotService), sets snapshot_hash,
+ * dispatches OrderLocked event. After lock the order is immutable (FinancialOrder booted guard).
+ *
+ * Assumes tenant context. Must run inside DB transaction (uses DB::transaction internally).
+ * Writes financial data: financial_orders, financial_order_items, financial_order_tax_lines.
+ * Float forbidden: all amounts in cents.
  */
 final class OrderLockService
 {
@@ -27,7 +33,15 @@ final class OrderLockService
     ) {}
 
     /**
-     * @param array<int, array{id: string, name: string, type: string, discount_cents: int}>|null $appliedPromotions Snapshot from operational order; immutable after lock
+     * Lock a draft FinancialOrder: compute tax, persist totals and snapshot, set hash, dispatch OrderLocked.
+     *
+     * @param FinancialOrder $order Draft order with items loaded.
+     * @param string|null $countryCode Optional for tax rate lookup.
+     * @param string|null $regionCode Optional for tax rate lookup.
+     * @param array<int, array{id: string, name: string, type: string, discount_cents: int}>|null $appliedPromotions Snapshot from operational order; immutable after lock.
+     * @return void
+     * @throws InvalidArgumentException When order already locked, not draft, or has no items.
+     * Side effects: Writes order, items, tax lines; sets snapshot and hash; dispatches OrderLocked. Requires tenant context; run in transaction.
      */
     public function lock(FinancialOrder $order, ?string $countryCode = null, ?string $regionCode = null, ?array $appliedPromotions = null): void
     {

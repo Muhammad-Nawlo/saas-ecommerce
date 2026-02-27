@@ -13,8 +13,13 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Runs financial reconciliation per tenant. Intended to be run daily via scheduler.
- * Uses tenant context correctly: initializes tenancy for each tenant before reconciling.
+ * ReconcileFinancialDataJob
+ *
+ * Runs FinancialReconciliationService::reconcile() for each tenant. Intended to be run daily via scheduler.
+ * Initializes tenancy for each tenant (tenancy()->initialize($tenant)) before reconciling, then ends tenancy.
+ * Reconciliation only detects and logs inconsistencies (ledger balanced, invoice total, payments sum); does not auto-fix.
+ *
+ * Fetches tenants from central DB (Tenant::all()). No financial data written; read-only per tenant DB.
  */
 final class ReconcileFinancialDataJob implements ShouldQueue
 {

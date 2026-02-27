@@ -11,6 +11,15 @@ use App\Listeners\SubscriptionCancelledListener;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as BaseEventServiceProvider;
 use Illuminate\Support\Facades\Event;
 
+/**
+ * EventServiceProvider — Event flow summary for financial/order/invoice:
+ *
+ * OrderPaid (App\Events\Financial): CreateInvoiceOnOrderPaidListener, CreateLedgerTransactionOnOrderPaidListener;
+ * subscribers: CreateFinancialTransactionListener (CREDIT tx), AuditLogOrderStatusListener.
+ * OrderRefunded: CreateLedgerReversalOnOrderRefundedListener; subscriber: CreateFinancialTransactionListener (REFUND tx), AuditLogOrderStatusListener.
+ * PaymentSucceeded (Modules\Payments): SyncFinancialOrderOnPaymentSucceededListener (sync FO, lock, mark paid, dispatch OrderPaid), OrderPaidListener, SendOrderConfirmationEmailListener.
+ * SubscriptionCancelled (Landlord): SubscriptionCancelledListener.
+ */
 class EventServiceProvider extends BaseEventServiceProvider
 {
     protected $listen = [

@@ -21,10 +21,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * After operational payment succeeds: sync financial order, lock, mark paid, fill payment snapshot.
- * Dispatches OrderPaid (financial) which triggers invoice and financial_transaction creation.
+ * SyncFinancialOrderOnPaymentSucceededListener
  *
- * Idempotent: payment_id-based idempotency key prevents double processing on duplicate events.
+ * After PaymentSucceeded (Modules\Payments): syncs FinancialOrder from operational Order, locks if not locked,
+ * marks paid, fills payment snapshot, records promotion usage, dispatches OrderPaid (App\Events\Financial\OrderPaid).
+ * OrderPaid triggers CreateInvoiceOnOrderPaidListener, CreateLedgerTransactionOnOrderPaidListener,
+ * CreateFinancialTransactionListener. Idempotent: Cache key payment_confirmed:{paymentId} (24h TTL) prevents double processing.
+ *
+ * Who dispatches PaymentSucceeded: Payment confirmation flow (e.g. ConfirmPaymentHandler after gateway confirm).
+ *
+ * Assumes tenant context. Writes financial_orders, payment snapshots; runs in DB transaction. Critical for order→financial sync.
  */
 final class SyncFinancialOrderOnPaymentSucceededListener
 {
@@ -40,6 +46,13 @@ final class SyncFinancialOrderOnPaymentSucceededListener
     ) {
     }
 
+    /**
+     * Sync financial order from operational order, lock if needed, mark paid, fill snapshot, record promotions, dispatch OrderPaid (inside transaction). Skips if idempotency key set or order already paid.
+     *
+     * @param PaymentSucceeded $event
+     * @return void
+     * Side effects: Writes FinancialOrder, snapshot; Cache set; dispatches OrderPaid. Requires tenant context; runs in DB transaction.
+     */
     public function handle(PaymentSucceeded $event): void
     {
         $paymentId = $event->paymentId->value();
