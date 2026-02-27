@@ -1,0 +1,632 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "SaaS E-commerce API",
+    "version": "1.0.0",
+    "description": "Multi-tenant SaaS with landlord (plans, subscriptions, billing) and tenant (catalog, cart, checkout, orders, payments, inventory, customer, reports) APIs. Domain-based tenant resolution; tenant DB isolated per domain. Tenant API must be called from tenant domain; Landlord API from central domain. Auth: bearerAuth (Sanctum staff), customerAuth (Sanctum customer guard); some endpoints are public."
+  },
+  "basePath": "/api",
+  "schemes": ["http", "https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Authorization",
+      "description": "Laravel Sanctum bearer token (staff). Example: Bearer 1|..."
+    },
+    "customerAuth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "Authorization",
+      "description": "Laravel Sanctum bearer token (customer). Example: Bearer 2|..."
+    }
+  },
+  "definitions": {
+    "CreatePlanRequest": {
+      "type": "object",
+      "required": ["name", "stripe_price_id", "price_amount", "currency", "billing_interval"],
+      "properties": {
+        "name": { "type": "string", "example": "Pro" },
+        "stripe_price_id": { "type": "string" },
+        "price_amount": { "type": "integer" },
+        "currency": { "type": "string", "example": "USD" },
+        "billing_interval": { "type": "string", "enum": ["monthly", "yearly"] }
+      }
+    }
+  },
+  "paths": {
+    "/landlord/plans": {
+      "get": {
+        "tags": ["Landlord - Plans"],
+        "summary": "List active plans",
+        "description": "Returns all active billing plans. Public. Call from central domain.",
+        "responses": { "200": { "description": "List of plans" } }
+      },
+      "post": {
+        "tags": ["Landlord - Plans"],
+        "summary": "Create plan",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "$ref": "#/definitions/CreatePlanRequest" } }],
+        "responses": { "200": { "description": "Created plan" }, "400": { "description": "Bad request" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/plans/{id}/activate": {
+      "post": {
+        "tags": ["Landlord - Plans"],
+        "summary": "Activate plan",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "id", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Plan activated" }, "400": { "description": "Bad request" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/plans/{id}/deactivate": {
+      "post": {
+        "tags": ["Landlord - Plans"],
+        "summary": "Deactivate plan",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "id", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Plan deactivated" }, "400": { "description": "Bad request" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/subscriptions/subscribe": {
+      "post": {
+        "tags": ["Landlord - Subscriptions"],
+        "summary": "Subscribe tenant to plan",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["tenant_id", "plan_id"], "properties": { "tenant_id": { "type": "string" }, "plan_id": { "type": "string" } } } }],
+        "responses": { "200": { "description": "Subscription created" }, "400": { "description": "Bad request" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/subscriptions/cancel": {
+      "post": {
+        "tags": ["Landlord - Subscriptions"],
+        "summary": "Cancel subscription",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["tenant_id"], "properties": { "tenant_id": { "type": "string" } } } }],
+        "responses": { "200": { "description": "Subscription cancelled" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/subscriptions/{tenantId}": {
+      "get": {
+        "tags": ["Landlord - Subscriptions"],
+        "summary": "Get tenant subscription",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "tenantId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Subscription details" }, "404": { "description": "Not found" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/billing/checkout/{plan}": {
+      "post": {
+        "tags": ["Landlord - Billing"],
+        "summary": "Create billing checkout session",
+        "description": "Stripe Checkout session. Central domain.",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "plan", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Checkout session URL or session id" }, "400": { "description": "Bad request" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/landlord/billing/webhook": {
+      "post": {
+        "tags": ["Landlord - Billing"],
+        "summary": "Stripe webhook",
+        "description": "No auth; verify signature.",
+        "responses": { "200": { "description": "Processed" }, "400": { "description": "Bad request" } }
+      }
+    },
+    "/landlord/billing/success": {
+      "get": {
+        "tags": ["Landlord - Billing"],
+        "summary": "Billing checkout success redirect",
+        "responses": { "302": { "description": "Redirect after successful checkout" } }
+      }
+    },
+    "/landlord/billing/cancel": {
+      "get": {
+        "tags": ["Landlord - Billing"],
+        "summary": "Billing checkout cancel redirect",
+        "responses": { "302": { "description": "Redirect when checkout cancelled" } }
+      }
+    },
+    "/landlord/billing/portal/return": {
+      "get": {
+        "tags": ["Landlord - Billing"],
+        "summary": "Return from customer portal",
+        "responses": { "302": { "description": "Redirect after portal" } }
+      }
+    },
+    "/v1/catalog/products": {
+      "get": {
+        "tags": ["Tenant - Catalog"],
+        "summary": "List products",
+        "description": "Public. Tenant domain.",
+        "responses": { "200": { "description": "List of products" } }
+      },
+      "post": {
+        "tags": ["Tenant - Catalog"],
+        "summary": "Create product",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["name", "slug", "price_minor_units", "currency"], "properties": { "name": { "type": "string" }, "slug": { "type": "string" }, "description": { "type": "string" }, "price_minor_units": { "type": "integer" }, "currency": { "type": "string" } } } }],
+        "responses": { "200": { "description": "Created product" }, "403": { "description": "Forbidden" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/catalog/products/{id}": {
+      "get": {
+        "tags": ["Tenant - Catalog"],
+        "summary": "Get product",
+        "parameters": [{ "in": "path", "name": "id", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Product" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/catalog/products/{id}/price": {
+      "patch": {
+        "tags": ["Tenant - Catalog"],
+        "summary": "Update product price",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "id", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["price_minor_units", "currency"], "properties": { "price_minor_units": { "type": "integer" }, "currency": { "type": "string" } } }
+        ],
+        "responses": { "200": { "description": "Updated" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/catalog/products/{id}/activate": {
+      "post": {
+        "tags": ["Tenant - Catalog"],
+        "summary": "Activate product",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "id", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Activated" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/catalog/products/{id}/deactivate": {
+      "post": {
+        "tags": ["Tenant - Catalog"],
+        "summary": "Deactivate product",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "id", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Deactivated" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/cart": {
+      "post": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Create cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "schema": { "type": "object", "properties": { "customer_email": { "type": "string" }, "session_id": { "type": "string" } } }],
+        "responses": { "201": { "description": "Cart created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/cart/{cartId}": {
+      "get": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Get cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "cartId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Cart" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/cart/{cartId}/items": {
+      "post": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Add item to cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "cartId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["product_id", "quantity", "unit_price_minor_units", "currency"], "properties": { "product_id": { "type": "string", "format": "uuid" }, "quantity": { "type": "integer" }, "unit_price_minor_units": { "type": "integer" }, "currency": { "type": "string" } } }
+        ],
+        "responses": { "200": { "description": "Item added" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/cart/{cartId}/items/{productId}": {
+      "put": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Update cart item",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "cartId", "type": "string", "required": true },
+          { "in": "path", "name": "productId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["quantity"], "properties": { "quantity": { "type": "integer" } } }
+        ],
+        "responses": { "200": { "description": "Item updated" }, "422": { "description": "Validation error" } }
+      },
+      "delete": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Remove item from cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "cartId", "type": "string", "required": true },
+          { "in": "path", "name": "productId", "type": "string", "required": true }
+        ],
+        "responses": { "200": { "description": "Item removed" } }
+      }
+    },
+    "/v1/cart/{cartId}/clear": {
+      "post": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Clear cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "cartId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Cart cleared" } }
+      }
+    },
+    "/v1/cart/{cartId}/convert": {
+      "post": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Convert cart to order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "cartId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Order created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/cart/{cartId}/abandon": {
+      "post": {
+        "tags": ["Tenant - Cart"],
+        "summary": "Abandon cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "cartId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Cart abandoned" } }
+      }
+    },
+    "/v1/checkout": {
+      "post": {
+        "tags": ["Tenant - Checkout"],
+        "summary": "Checkout cart",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["cart_id", "payment_provider", "customer_email"], "properties": { "cart_id": { "type": "string", "format": "uuid" }, "payment_provider": { "type": "string", "enum": ["stripe", "manual", "paypal"] }, "customer_email": { "type": "string", "format": "email" }, "coupon_codes": { "type": "array", "items": { "type": "string" } } } } }],
+        "responses": { "200": { "description": "Order and payment created; returns client_secret for Stripe" }, "400": { "description": "Bad request" }, "422": { "description": "Empty cart or stock validation" } }
+      }
+    },
+    "/v1/checkout/confirm-payment": {
+      "post": {
+        "tags": ["Tenant - Checkout"],
+        "summary": "Confirm checkout payment",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["payment_id"], "properties": { "payment_id": { "type": "string", "format": "uuid" }, "provider_payment_id": { "type": "string" } } } }],
+        "responses": { "200": { "description": "Payment confirmed" }, "400": { "description": "Bad request" } }
+      }
+    },
+    "/v1/orders": {
+      "post": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Create order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["customer_email"], "properties": { "customer_email": { "type": "string", "format": "email" } } }],
+        "responses": { "201": { "description": "Order created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/orders/{orderId}": {
+      "get": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Get order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "orderId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Order" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/orders/{orderId}/items": {
+      "post": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Add order item",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "orderId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true }
+        ],
+        "responses": { "200": { "description": "Item added" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/orders/{orderId}/confirm": {
+      "post": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Confirm order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "orderId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Order confirmed" } }
+      }
+    },
+    "/v1/orders/{orderId}/pay": {
+      "post": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Mark order paid",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "orderId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Order paid" } }
+      }
+    },
+    "/v1/orders/{orderId}/ship": {
+      "post": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Ship order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "orderId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Order shipped" } }
+      }
+    },
+    "/v1/orders/{orderId}/cancel": {
+      "post": {
+        "tags": ["Tenant - Orders"],
+        "summary": "Cancel order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "orderId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Order cancelled" } }
+      }
+    },
+    "/v1/payments": {
+      "post": {
+        "tags": ["Tenant - Payments"],
+        "summary": "Create payment",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["order_id", "amount_minor_units", "currency", "provider"], "properties": { "order_id": { "type": "string", "format": "uuid" }, "amount_minor_units": { "type": "integer" }, "currency": { "type": "string" }, "provider": { "type": "string", "enum": ["stripe", "manual", "paypal"] } } } }],
+        "responses": { "201": { "description": "Payment created; returns client_secret for Stripe" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/payments/order/{orderId}": {
+      "get": {
+        "tags": ["Tenant - Payments"],
+        "summary": "List payments for order",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "orderId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "List of payments" } }
+      }
+    },
+    "/v1/payments/{paymentId}/confirm": {
+      "post": {
+        "tags": ["Tenant - Payments"],
+        "summary": "Confirm payment",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "paymentId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "schema": { "type": "object", "properties": { "provider_payment_id": { "type": "string" } } }
+        ],
+        "responses": { "200": { "description": "Payment confirmed" }, "400": { "description": "Bad request" } }
+      }
+    },
+    "/v1/payments/{paymentId}/refund": {
+      "post": {
+        "tags": ["Tenant - Payments"],
+        "summary": "Refund payment",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "paymentId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Refund initiated" } }
+      }
+    },
+    "/v1/payments/{paymentId}/cancel": {
+      "post": {
+        "tags": ["Tenant - Payments"],
+        "summary": "Cancel payment",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "paymentId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Payment cancelled" } }
+      }
+    },
+    "/v1/inventory": {
+      "post": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Create stock",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true }],
+        "responses": { "201": { "description": "Stock created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/inventory/{productId}": {
+      "get": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Get stock for product",
+        "security": [{"bearerAuth": []}],
+        "parameters": [{ "in": "path", "name": "productId", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Stock" }, "404": { "description": "Not found" } }
+      }
+    },
+    "/v1/inventory/{productId}/increase": {
+      "post": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Increase stock",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "productId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["quantity"], "properties": { "quantity": { "type": "integer" } } }
+        ],
+        "responses": { "200": { "description": "Stock increased" } }
+      }
+    },
+    "/v1/inventory/{productId}/decrease": {
+      "post": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Decrease stock",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "productId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["quantity"], "properties": { "quantity": { "type": "integer" } } }
+        ],
+        "responses": { "200": { "description": "Stock decreased" } }
+      }
+    },
+    "/v1/inventory/{productId}/reserve": {
+      "post": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Reserve stock",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "productId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["quantity"], "properties": { "quantity": { "type": "integer" } } }
+        ],
+        "responses": { "200": { "description": "Stock reserved" } }
+      }
+    },
+    "/v1/inventory/{productId}/release": {
+      "post": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Release stock",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "productId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["quantity"], "properties": { "quantity": { "type": "integer" } } }
+        ],
+        "responses": { "200": { "description": "Stock released" } }
+      }
+    },
+    "/v1/inventory/{productId}/threshold": {
+      "patch": {
+        "tags": ["Tenant - Inventory"],
+        "summary": "Set low stock threshold",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "productId", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["threshold"], "properties": { "threshold": { "type": "integer" } } }
+        ],
+        "responses": { "200": { "description": "Threshold set" } }
+      }
+    },
+    "/v1/customer/register": {
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Register customer",
+        "description": "Public. Tenant domain.",
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["email", "password", "first_name", "last_name"], "properties": { "email": { "type": "string" }, "password": { "type": "string" }, "first_name": { "type": "string" }, "last_name": { "type": "string" }, "phone": { "type": "string" } } } }],
+        "responses": { "201": { "description": "Registered; returns token" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/customer/login": {
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Login customer",
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["email", "password"], "properties": { "email": { "type": "string" }, "password": { "type": "string" } } } }],
+        "responses": { "200": { "description": "Returns token" }, "422": { "description": "Invalid credentials" } }
+      }
+    },
+    "/v1/customer/forgot-password": {
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Forgot password",
+        "parameters": [{ "in": "body", "name": "body", "required": true, "schema": { "type": "object", "required": ["email"], "properties": { "email": { "type": "string" } } } }],
+        "responses": { "200": { "description": "Reset link sent" } }
+      }
+    },
+    "/v1/customer/reset-password": {
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Reset password",
+        "parameters": [{ "in": "body", "name": "body", "required": true }],
+        "responses": { "200": { "description": "Password reset" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/customer/logout": {
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Logout customer",
+        "security": [{"customerAuth": []}],
+        "responses": { "200": { "description": "Logged out" } }
+      }
+    },
+    "/v1/customer/me": {
+      "get": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Get current customer",
+        "security": [{"customerAuth": []}],
+        "responses": { "200": { "description": "Customer profile" }, "401": { "description": "Unauthorized" } }
+      }
+    },
+    "/v1/customer/profile": {
+      "patch": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Update profile",
+        "security": [{"customerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true }],
+        "responses": { "200": { "description": "Profile updated" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/customer/addresses": {
+      "get": {
+        "tags": ["Tenant - Customer"],
+        "summary": "List addresses",
+        "security": [{"customerAuth": []}],
+        "responses": { "200": { "description": "List of addresses" } }
+      },
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Add address",
+        "security": [{"customerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true }],
+        "responses": { "201": { "description": "Address created" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/customer/addresses/{id}": {
+      "patch": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Update address",
+        "security": [{"customerAuth": []}],
+        "parameters": [
+          { "in": "path", "name": "id", "type": "string", "required": true },
+          { "in": "body", "name": "body", "required": true }
+        ],
+        "responses": { "200": { "description": "Address updated" }, "422": { "description": "Validation error" } }
+      },
+      "delete": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Delete address",
+        "security": [{"customerAuth": []}],
+        "parameters": [{ "in": "path", "name": "id", "type": "string", "required": true }],
+        "responses": { "200": { "description": "Address deleted" } }
+      }
+    },
+    "/v1/customer/password/change": {
+      "post": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Change password",
+        "security": [{"customerAuth": []}],
+        "parameters": [{ "in": "body", "name": "body", "required": true }],
+        "responses": { "200": { "description": "Password changed" }, "422": { "description": "Validation error" } }
+      }
+    },
+    "/v1/customer/export": {
+      "get": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Export data (GDPR)",
+        "security": [{"customerAuth": []}],
+        "responses": { "200": { "description": "Export data" } }
+      }
+    },
+    "/v1/customer/account": {
+      "delete": {
+        "tags": ["Tenant - Customer"],
+        "summary": "Delete account",
+        "security": [{"customerAuth": []}],
+        "responses": { "200": { "description": "Account deleted" } }
+      }
+    },
+    "/v1/reports/revenue": {
+      "get": {
+        "tags": ["Tenant - Reports"],
+        "summary": "Revenue report",
+        "security": [{"bearerAuth": []}],
+        "responses": { "200": { "description": "Revenue data" } }
+      }
+    },
+    "/v1/reports/tax": {
+      "get": {
+        "tags": ["Tenant - Reports"],
+        "summary": "Tax report",
+        "security": [{"bearerAuth": []}],
+        "responses": { "200": { "description": "Tax data" } }
+      }
+    },
+    "/v1/reports/products": {
+      "get": {
+        "tags": ["Tenant - Reports"],
+        "summary": "Products report",
+        "security": [{"bearerAuth": []}],
+        "responses": { "200": { "description": "Products report" } }
+      }
+    },
+    "/v1/reports/conversion": {
+      "get": {
+        "tags": ["Tenant - Reports"],
+        "summary": "Conversion report",
+        "security": [{"bearerAuth": []}],
+        "responses": { "200": { "description": "Conversion data" } }
+      }
+    }
+  }
+}
