@@ -24,7 +24,7 @@ test('guest orders can be linked to customer by email', function (): void {
     OrderModel::create([
         'id' => \Illuminate\Support\Str::uuid()->toString(),
         'tenant_id' => $this->tenant->id,
-        'customer_id' => null,
+        'user_id' => null,
         'customer_email' => $email,
         'status' => 'pending',
         'total_amount' => 500,
@@ -41,5 +41,5 @@ test('guest orders can be linked to customer by email', function (): void {
     $linked = $service->linkByEmail($customer);
     expect($linked)->toBe(1);
     $order = OrderModel::forTenant($this->tenant->id)->where('customer_email', $email)->first();
-    expect($order->customer_id)->toBe($customer->id);
+    expect($order->user_id)->toBe($customer->id);
 })->group('customer-identity');

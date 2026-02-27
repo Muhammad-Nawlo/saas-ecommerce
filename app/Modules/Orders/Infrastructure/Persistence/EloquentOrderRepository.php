@@ -37,7 +37,7 @@ final class EloquentOrderRepository implements OrderRepository
             $orderModel = $existingOrder ?? new OrderModel();
             $orderModel->id = $order->id()->value();
             $orderModel->tenant_id = $tenantId;
-            $orderModel->customer_id = $customerId;
+            $orderModel->user_id = $customerId;
             $orderModel->customer_email = $order->customerEmail()->value();
             $orderModel->status = $order->status()->value();
             $orderModel->total_amount = $order->totalAmount()->amountInMinorUnits();

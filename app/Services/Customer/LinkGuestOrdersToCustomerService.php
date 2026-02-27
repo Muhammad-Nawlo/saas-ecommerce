@@ -21,9 +21,9 @@ final class LinkGuestOrdersToCustomerService
         return (int) DB::transaction(function () use ($customer, $email, $tenantId): int {
             $updated = OrderModel::query()
                 ->where('tenant_id', $tenantId)
-                ->whereNull('customer_id')
+                ->whereNull('user_id')
                 ->where('customer_email', $email)
-                ->update(['customer_id' => $customer->id]);
+                ->update(['user_id' => $customer->id]);
             return $updated;
         });
     }

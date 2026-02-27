@@ -10,9 +10,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('customer_addresses', function (Blueprint $table): void {
+        Schema::create('user_addresses', function (Blueprint $table): void {
             $table->uuid('id')->primary();
-            $table->uuid('customer_id');
+            $table->uuid('user_id');
             $table->enum('type', ['billing', 'shipping']);
             $table->string('line1');
             $table->string('line2')->nullable();
@@ -23,13 +23,13 @@ return new class extends Migration
             $table->boolean('is_default')->default(false);
             $table->timestamps();
 
-            $table->foreign('customer_id')->references('id')->on('customers')->cascadeOnDelete();
-            $table->index('customer_id');
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->index('user_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('customer_addresses');
+        Schema::dropIfExists('user_addresses');
     }
 };

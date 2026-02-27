@@ -23,7 +23,7 @@ class InvoiceFactory extends Factory
         return [
             'tenant_id' => (string) Str::uuid(),
             'order_id' => null,
-            'customer_id' => null,
+            'user_id' => null,
             'invoice_number' => 'INV-' . date('Y') . '-' . str_pad((string) fake()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'status' => Invoice::STATUS_DRAFT,
             'currency' => 'USD',

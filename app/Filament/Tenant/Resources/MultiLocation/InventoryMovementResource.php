@@ -24,14 +24,6 @@ class InventoryMovementResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $q): Builder {
-                $tid = tenant('id');
-                if ($tid === null) {
-                    return $q->whereRaw('1 = 0');
-                }
-                $locIds = \App\Models\Inventory\InventoryLocation::forTenant((string) $tid)->pluck('id');
-                return $q->whereIn('location_id', $locIds)->with('location');
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('product_id')->label('Product ID')->searchable(),
                 Tables\Columns\TextColumn::make('location.name')->label('Location')->sortable(),
@@ -94,5 +86,17 @@ class InventoryMovementResource extends Resource
     public static function canDelete($record): bool
     {
         return false;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $tid = tenant('id');
+        if ($tid === null) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+        $locIds = \App\Models\Inventory\InventoryLocation::forTenant((string) $tid)->pluck('id');
+        return parent::getEloquentQuery()
+            ->whereIn('location_id', $locIds)
+            ->with('location');
     }
 }

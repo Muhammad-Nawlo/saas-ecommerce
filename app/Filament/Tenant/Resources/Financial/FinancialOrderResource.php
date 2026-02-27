@@ -75,7 +75,7 @@ class FinancialOrderResource extends Resource
                     ->label('Total')
                     ->formatStateUsing(fn (int $state, FinancialOrder $r) => number_format($state / 100, 2) . ' ' . $r->currency)
                     ->sortable(),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'paid' => 'success',
                     'pending' => 'warning',
                     'draft' => 'gray',

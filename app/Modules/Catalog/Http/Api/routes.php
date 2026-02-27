@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 use App\Modules\Catalog\Http\Api\Controllers\ProductController;
 use Illuminate\Support\Facades\Route;
-use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 Route::middleware([
     'api',
-    InitializeTenancyBySubdomain::class,
+    InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])
     ->prefix('catalog')

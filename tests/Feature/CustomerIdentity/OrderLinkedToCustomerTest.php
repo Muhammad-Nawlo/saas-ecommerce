@@ -29,12 +29,12 @@ test('order can be linked to customer', function (): void {
     $order = OrderModel::create([
         'id' => \Illuminate\Support\Str::uuid()->toString(),
         'tenant_id' => $this->tenant->id,
-        'customer_id' => $customer->id,
+        'user_id' => $customer->id,
         'customer_email' => $customer->email,
         'status' => 'pending',
         'total_amount' => 1000,
         'currency' => 'USD',
     ]);
-    expect($order->customer_id)->toBe($customer->id);
+    expect($order->user_id)->toBe($customer->id);
     expect($order->customer_email)->toBe($customer->email);
 })->group('customer-identity');

@@ -40,9 +40,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'tenant_web' => [
+            'driver' => 'session',
+            'provider' => 'tenant_users',
+        ],
         'customer' => [
             'driver' => 'sanctum',
-            'provider' => 'customers',
+            'provider' => 'tenant_users',
         ],
     ],
 
@@ -68,7 +72,7 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
-        'customers' => [
+        'tenant_users' => [
             'driver' => 'eloquent',
             'model' => App\Models\Customer\Customer::class,
         ],
@@ -100,9 +104,9 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
-        'customers' => [
-            'provider' => 'customers',
-            'table' => 'customer_password_reset_tokens',
+        'tenant_users' => [
+            'provider' => 'tenant_users',
+            'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

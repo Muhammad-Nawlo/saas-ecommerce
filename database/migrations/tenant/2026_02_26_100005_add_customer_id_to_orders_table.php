@@ -15,8 +15,8 @@ return new class extends Migration
     {
         DB::statement('DROP VIEW IF EXISTS customer_summaries');
         Schema::table('orders', function (Blueprint $table): void {
-            $table->uuid('customer_id')->nullable()->after('tenant_id')->index();
-            $table->foreign('customer_id')->references('id')->on('customers')->nullOnDelete();
+            $table->uuid('user_id')->nullable()->after('tenant_id')->index();
+            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
         });
         DB::statement(self::VIEW_SQL);
     }
@@ -25,8 +25,8 @@ return new class extends Migration
     {
         DB::statement('DROP VIEW IF EXISTS customer_summaries');
         Schema::table('orders', function (Blueprint $table): void {
-            $table->dropForeign(['customer_id']);
-            $table->dropColumn('customer_id');
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
         });
         DB::statement(self::VIEW_SQL);
     }

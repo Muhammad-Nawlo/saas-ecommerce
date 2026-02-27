@@ -282,7 +282,7 @@ final class TenantDataSeeder extends Seeder
             $order = OrderModel::create([
                 'id' => $orderId,
                 'tenant_id' => $tenantId,
-                'customer_id' => $customer->id,
+                'user_id' => $customer->id,
                 'customer_email' => $customer->email,
                 'status' => 'pending',
                 'total_amount' => $totalAmount,

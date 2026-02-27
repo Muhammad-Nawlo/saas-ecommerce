@@ -31,14 +31,6 @@ class InventoryStockResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $q): Builder {
-                $tid = tenant('id');
-                if ($tid === null) {
-                    return $q->whereRaw('1 = 0');
-                }
-                $locationIds = \App\Models\Inventory\InventoryLocation::forTenant((string) $tid)->pluck('id');
-                return $q->whereIn('location_id', $locationIds)->with(['product', 'location']);
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('product.name')->label('Product')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('location.name')->label('Location')->sortable(),
@@ -102,7 +94,14 @@ class InventoryStockResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        $tid = tenant('id');
+        if ($tid === null) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+        $locationIds = \App\Models\Inventory\InventoryLocation::forTenant((string) $tid)->pluck('id');
+        return parent::getEloquentQuery()
+            ->whereIn('location_id', $locationIds)
+            ->with(['product', 'location']);
     }
 
     public static function getPages(): array

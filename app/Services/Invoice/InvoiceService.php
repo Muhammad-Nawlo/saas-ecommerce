@@ -65,7 +65,7 @@ final class InvoiceService
             $invoice = Invoice::create([
                 'tenant_id' => $tenantId,
                 'order_id' => $order->id,
-                'customer_id' => null,
+                'user_id' => null,
                 'invoice_number' => $invoiceNumber,
                 'status' => Invoice::STATUS_DRAFT,
                 'currency' => $currency,

@@ -65,7 +65,6 @@ class InventoryResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with('product'))
             ->columns([
                 Tables\Columns\TextColumn::make('product.name')->label('Product')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('quantity')->sortable(),
@@ -107,7 +106,7 @@ class InventoryResource extends Resource
         if ($tenantId === null) {
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
-        return parent::getEloquentQuery()->forTenant((string) $tenantId);
+        return parent::getEloquentQuery()->forTenant((string) $tenantId)->with('product');
     }
 
     public static function getModelLabel(): string

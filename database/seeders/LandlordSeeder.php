@@ -107,7 +107,7 @@ final class LandlordSeeder extends Seeder
             ]
         );
         Domain::firstOrCreate(
-            ['domain' => 'tenant-one.' . (config('tenancy.central_domains')[0] ?? 'localhost')],
+            ['domain' => 'tenant-one.' . config('tenancy.tenant_base_domain')],
             ['tenant_id' => $tenantOne->id]
         );
         if ($basicPlan && !Subscription::where('tenant_id', $tenantOne->id)->exists()) {
@@ -133,7 +133,7 @@ final class LandlordSeeder extends Seeder
             ]
         );
         Domain::firstOrCreate(
-            ['domain' => 'tenant-two.' . (config('tenancy.central_domains')[0] ?? 'localhost')],
+            ['domain' => 'tenant-two.' . config('tenancy.tenant_base_domain')],
             ['tenant_id' => $tenantTwo->id]
         );
         if ($proPlan && !Subscription::where('tenant_id', $tenantTwo->id)->exists()) {

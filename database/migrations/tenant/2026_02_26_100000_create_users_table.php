@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table): void {
+        Schema::create('users', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->string('tenant_id', 36)->index();
             $table->string('email')->index();
@@ -22,6 +22,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true)->index();
             $table->timestamp('last_login_at')->nullable()->index();
             $table->json('meta')->nullable();
+            $table->rememberToken();
             $table->timestamps();
             $table->softDeletes();
 
@@ -31,6 +32,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('users');
     }
 };

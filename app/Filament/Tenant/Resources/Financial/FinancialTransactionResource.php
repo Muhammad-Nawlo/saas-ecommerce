@@ -25,7 +25,7 @@ class FinancialTransactionResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('ID')->limit(8)->copyable(),
                 Tables\Columns\TextColumn::make('order.order_number')->label('Order')->sortable(),
-                Tables\Columns\TextColumn::make('type')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('type')->badge()->color(fn (string $state) => match ($state) {
                     'credit' => 'success',
                     'debit' => 'warning',
                     'refund' => 'info',
@@ -33,10 +33,10 @@ class FinancialTransactionResource extends Resource
                 })->sortable(),
                 Tables\Columns\TextColumn::make('amount_cents')
                     ->label('Amount')
-                    ->formatStateUsing(fn (int $s, FinancialTransaction $r) => number_format($s / 100, 2) . ' ' . $r->currency)
+                    ->formatStateUsing(fn (int $state, FinancialTransaction $r) => number_format($state / 100, 2) . ' ' . $r->currency)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('currency'),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'completed' => 'success',
                     'pending' => 'warning',
                     'failed' => 'danger',

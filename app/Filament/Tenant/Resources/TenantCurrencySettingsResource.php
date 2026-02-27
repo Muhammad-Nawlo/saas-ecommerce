@@ -63,9 +63,10 @@ class TenantCurrencySettingsResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->where('tenant_id', tenant('id'))->with('baseCurrency'))
             ->columns([
-                Tables\Columns\TextColumn::make('baseCurrency.name')->label('Base currency'),
+                Tables\Columns\TextColumn::make('baseCurrency.name')
+                    ->label('Base currency')
+                    ->getStateUsing(fn (?TenantCurrencySetting $record) => $record?->baseCurrency?->name ?? '—'),
                 Tables\Columns\IconColumn::make('allow_multi_currency')->label('Multi-currency')->boolean(),
                 Tables\Columns\TextColumn::make('rounding_strategy')->label('Rounding'),
             ])
@@ -97,6 +98,6 @@ class TenantCurrencySettingsResource extends Resource
         if ($tid === null) {
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
-        return parent::getEloquentQuery()->where('tenant_id', $tid);
+        return parent::getEloquentQuery()->where('tenant_id', $tid)->with('baseCurrency');
     }
 }

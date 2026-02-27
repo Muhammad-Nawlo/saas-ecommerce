@@ -47,12 +47,12 @@ return new class extends Migration
         Schema::create('promotion_usages', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->uuid('promotion_id');
-            $table->string('customer_id', 36)->nullable()->index();
+            $table->string('user_id', 36)->nullable()->index();
             $table->string('customer_email')->nullable()->index();
             $table->string('order_id', 36)->nullable()->index();
             $table->timestamp('used_at')->useCurrent();
             $table->foreign('promotion_id')->references('id')->on('promotions')->cascadeOnDelete();
-            $table->index(['promotion_id', 'customer_id']);
+            $table->index(['promotion_id', 'user_id']);
             $table->index(['promotion_id', 'customer_email']);
         });
     }

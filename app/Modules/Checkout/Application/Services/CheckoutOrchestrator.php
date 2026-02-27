@@ -66,7 +66,7 @@ final readonly class CheckoutOrchestrator
                     'tenant_id' => $cart->tenantId,
                     'customer_email' => $cart->customerEmail,
                     'items' => $cart->itemsForOrder(),
-                    'customer_id' => $command->customerId,
+                    'user_id' => $command->customerId,
                 ];
                 $orderId = $this->orderService->createOrderFromCart($cartData);
                 $orderIdForRelease = $orderId;

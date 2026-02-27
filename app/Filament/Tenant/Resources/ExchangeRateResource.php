@@ -29,7 +29,8 @@ class ExchangeRateResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        $baseId = app(\App\Services\Currency\CurrencyService::class)->getTenantBaseCurrency()?->id;
+        $baseCurrency = app(\App\Services\Currency\CurrencyService::class)->getTenantBaseCurrency();
+        $baseId = $baseCurrency?->id;
         $currencies = Currency::where('is_active', true)->orderBy('code')->pluck('code', 'id')->toArray();
         return $schema
             ->schema([
@@ -59,18 +60,16 @@ class ExchangeRateResource extends Resource
 
     public static function table(Table $table): Table
     {
-        $baseId = tenant('id') ? app(\App\Services\Currency\CurrencyService::class)->getTenantBaseCurrency()?->id : null;
         return $table
-            ->modifyQueryUsing(function (Builder $q) use ($baseId): Builder {
-                $q->with(['baseCurrency', 'targetCurrency']);
-                if ($baseId !== null) {
-                    $q->where('base_currency_id', $baseId);
-                }
-                return $q;
-            })
             ->columns([
-                Tables\Columns\TextColumn::make('baseCurrency.code')->label('Base')->sortable(),
-                Tables\Columns\TextColumn::make('targetCurrency.code')->label('Target')->sortable(),
+                Tables\Columns\TextColumn::make('baseCurrency.code')
+                    ->label('Base')
+                    ->getStateUsing(fn (?ExchangeRate $record) => $record?->baseCurrency?->code ?? '—')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('targetCurrency.code')
+                    ->label('Target')
+                    ->getStateUsing(fn (?ExchangeRate $record) => $record?->targetCurrency?->code ?? '—')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('rate')->numeric(decimalPlaces: 6)->sortable(),
                 Tables\Columns\TextColumn::make('source')->badge()->sortable(),
                 Tables\Columns\TextColumn::make('effective_at')->dateTime()->sortable(),
@@ -86,11 +85,15 @@ class ExchangeRateResource extends Resource
             ->recordActions([
                 Action::make('setManual')
                     ->label('Set rate')
+                    ->visible(fn (ExchangeRate $record): bool => $record->baseCurrency !== null && $record->targetCurrency !== null)
                     ->form([
                         Forms\Components\TextInput::make('rate')->numeric()->required()->minValue(0.00000001),
                         Forms\Components\DateTimePicker::make('effective_at')->default(now()),
                     ])
                     ->action(function (ExchangeRate $record, array $data): void {
+                        if ($record->baseCurrency === null || $record->targetCurrency === null) {
+                            return;
+                        }
                         app(ExchangeRateService::class)->setManualRate(
                             $record->baseCurrency,
                             $record->targetCurrency,
@@ -118,5 +121,18 @@ class ExchangeRateResource extends Resource
     public static function shouldRegisterNavigation(): bool
     {
         return function_exists('tenant_feature') && (bool) tenant_feature('multi_currency');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $q = parent::getEloquentQuery()->with(['baseCurrency', 'targetCurrency']);
+        $tid = tenant('id');
+        if ($tid !== null) {
+            $base = app(\App\Services\Currency\CurrencyService::class)->getTenantBaseCurrency();
+            if ($base !== null) {
+                $q->where('base_currency_id', $base->id);
+            }
+        }
+        return $q;
     }
 }

@@ -18,6 +18,12 @@ return [
     'central_domains' => array_map('trim', array_filter(explode(',', env('CENTRAL_DOMAINS', '127.0.0.1,localhost,saas-ecommerce.test')))),
 
     /**
+     * Base domain used for tenant subdomains (e.g. tenant-one.{tenant_base_domain}).
+     * Set via TENANT_BASE_DOMAIN. Should match the host you use in the browser for tenant URLs.
+     */
+    'tenant_base_domain' => env('TENANT_BASE_DOMAIN', 'saas-ecommerce.test'),
+
+    /**
      * Tenancy bootstrappers are executed when tenancy is initialized.
      * Their responsibility is making Laravel features tenant-aware.
      *

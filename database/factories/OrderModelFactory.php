@@ -21,7 +21,7 @@ class OrderModelFactory extends Factory
         return [
             'id' => (string) Str::uuid(),
             'tenant_id' => (string) Str::uuid(),
-            'customer_id' => null,
+            'user_id' => null,
             'customer_email' => fake()->safeEmail(),
             'status' => 'pending',
             'total_amount' => $totalAmount,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Payments\Http\Api\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
-use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /*
@@ -16,7 +16,7 @@ Route::middleware([
     'api',
     'auth:sanctum',
     'throttle:payment',
-    InitializeTenancyBySubdomain::class,
+    InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
 ])
     ->prefix('payments')

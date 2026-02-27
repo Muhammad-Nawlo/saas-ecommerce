@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property string $id
- * @property string $customer_id
+ * @property string $user_id
  * @property string $type
  * @property string $line1
  * @property string|null $line2
@@ -24,13 +24,13 @@ class CustomerAddress extends Model
 {
     use HasUuids;
 
-    protected $table = 'customer_addresses';
+    protected $table = 'user_addresses';
 
     public const TYPE_BILLING = 'billing';
     public const TYPE_SHIPPING = 'shipping';
 
     protected $fillable = [
-        'customer_id',
+        'user_id',
         'type',
         'line1',
         'line2',
@@ -50,6 +50,6 @@ class CustomerAddress extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'user_id');
     }
 }

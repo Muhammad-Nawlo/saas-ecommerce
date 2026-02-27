@@ -8,6 +8,8 @@ use Filament\Actions\ViewAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 
 class OrdersRelationManager extends RelationManager
 {
@@ -15,10 +17,14 @@ class OrdersRelationManager extends RelationManager
 
     protected static ?string $title = 'Orders';
 
+    public function getRelationship(): Relation|Builder
+    {
+        return parent::getRelationship()->with('items');
+    }
+
     public function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn ($query) => $query->with('items'))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('Order #')->limit(8)->copyable(),
                 Tables\Columns\TextColumn::make('customer_email'),

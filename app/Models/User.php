@@ -9,10 +9,22 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * Central (landlord) users: super admins and tenant dashboard admins.
+ * Always uses the central DB connection so tenant panel auth hits central users table.
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, HasRoles, HasApiTokens, Notifiable;
+
+    /**
+     * Use central DB connection so auth works correctly when in tenant context (tenant dashboard).
+     */
+    public function getConnectionName(): ?string
+    {
+        return config('tenancy.database.central_connection') ?? config('database.default');
+    }
 
     /**
      * The attributes that are mass assignable.

@@ -19,7 +19,7 @@ class PromotionUsage extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['promotion_id', 'customer_id', 'customer_email', 'order_id', 'used_at'];
+    protected $fillable = ['promotion_id', 'user_id', 'customer_email', 'order_id', 'used_at'];
 
     protected function casts(): array
     {

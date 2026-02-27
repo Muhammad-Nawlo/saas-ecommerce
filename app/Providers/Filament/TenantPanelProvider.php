@@ -20,7 +20,6 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
-use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /**
@@ -51,7 +50,7 @@ class TenantPanelProvider extends PanelProvider
             ])
             ->middleware([
                 PreventAccessFromCentralDomains::class,
-                InitializeTenancyBySubdomain::class,
+                InitializeTenancyByDomain::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,

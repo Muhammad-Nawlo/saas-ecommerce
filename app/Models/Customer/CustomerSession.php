@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Optional security: track customer sessions (IP, user agent, last activity).
  *
  * @property string $id
- * @property string $customer_id
+ * @property string $user_id
  * @property string|null $ip_address
  * @property string|null $user_agent
  * @property \Illuminate\Support\Carbon|null $last_activity_at
@@ -26,7 +26,7 @@ class CustomerSession extends Model
     protected $table = 'customer_sessions';
 
     protected $fillable = [
-        'customer_id',
+        'user_id',
         'ip_address',
         'user_agent',
         'last_activity_at',
@@ -41,6 +41,6 @@ class CustomerSession extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'user_id');
     }
 }

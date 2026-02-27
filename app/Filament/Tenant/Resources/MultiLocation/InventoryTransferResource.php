@@ -9,6 +9,7 @@ use App\Services\Inventory\InventoryTransferService;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -18,7 +19,7 @@ class InventoryTransferResource extends Resource
 {
     protected static ?string $model = InventoryTransfer::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-right-left';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     /** @var string|\UnitEnum|null */
     protected static string|\UnitEnum|null $navigationGroup = 'Inventory';
@@ -37,7 +38,7 @@ class InventoryTransferResource extends Resource
 
         return $schema
             ->schema([
-                Forms\Components\Section::make('Transfer')
+                Section::make('Transfer')
                     ->schema([
                         Forms\Components\Select::make('product_id')
                             ->label('Product')
@@ -66,20 +67,12 @@ class InventoryTransferResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(function (Builder $q): Builder {
-                $tid = tenant('id');
-                if ($tid === null) {
-                    return $q->whereRaw('1 = 0');
-                }
-                $locIds = \App\Models\Inventory\InventoryLocation::forTenant((string) $tid)->pluck('id');
-                return $q->whereIn('from_location_id', $locIds)->with(['fromLocation', 'toLocation', 'product']);
-            })
             ->columns([
                 Tables\Columns\TextColumn::make('product.name')->label('Product')->sortable(),
                 Tables\Columns\TextColumn::make('fromLocation.name')->label('From')->sortable(),
                 Tables\Columns\TextColumn::make('toLocation.name')->label('To')->sortable(),
                 Tables\Columns\TextColumn::make('quantity')->sortable(),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'completed' => 'success',
                     'pending' => 'warning',
                     'cancelled' => 'danger',
@@ -116,7 +109,14 @@ class InventoryTransferResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery();
+        $tid = tenant('id');
+        if ($tid === null) {
+            return parent::getEloquentQuery()->whereRaw('1 = 0');
+        }
+        $locIds = \App\Models\Inventory\InventoryLocation::forTenant((string) $tid)->pluck('id');
+        return parent::getEloquentQuery()
+            ->whereIn('from_location_id', $locIds)
+            ->with(['fromLocation', 'toLocation', 'product']);
     }
 
     public static function canCreate(): bool

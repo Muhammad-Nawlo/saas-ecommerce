@@ -14,7 +14,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('tenant_id', 36)->index();
             $table->uuid('order_id')->nullable()->index();
-            $table->uuid('customer_id')->nullable()->index();
+            $table->uuid('user_id')->nullable()->index();
             $table->string('invoice_number')->unique();
             $table->enum('status', [
                 'draft',
@@ -41,7 +41,7 @@ return new class extends Migration
             $table->index(['tenant_id', 'status']);
 
             $table->foreign('order_id')->references('id')->on('financial_orders')->nullOnDelete();
-            $table->foreign('customer_id')->references('id')->on('customers')->nullOnDelete();
+            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
         });
     }
 

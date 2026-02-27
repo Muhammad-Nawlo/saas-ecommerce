@@ -89,7 +89,7 @@ final class SyncFinancialOrderOnPaymentSucceededListener
             if ($applied !== []) {
                 $this->recordPromotionUsage->recordForOrder(
                     $order->id,
-                    $order->customer_id,
+                    $order->user_id,
                     $order->customer_email,
                     $applied
                 );

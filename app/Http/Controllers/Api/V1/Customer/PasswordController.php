@@ -14,7 +14,7 @@ class PasswordController extends Controller
 {
     public function forgot(ForgotPasswordRequest $request): JsonResponse
     {
-        $status = Password::broker('customers')->sendResetLink(
+        $status = Password::broker('tenant_users')->sendResetLink(
             $request->only('email'),
         );
 
@@ -27,7 +27,7 @@ class PasswordController extends Controller
 
     public function reset(ResetPasswordRequest $request): JsonResponse
     {
-        $status = Password::broker('customers')->reset(
+        $status = Password::broker('tenant_users')->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($customer, string $password): void {
                 $customer->forceFill(['password' => $password])->save();

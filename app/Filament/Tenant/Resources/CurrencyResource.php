@@ -90,6 +90,7 @@ class CurrencyResource extends Resource
 
     public static function canMultiCurrency(): bool
     {
+
         return function_exists('tenant_feature') && (bool) tenant_feature('multi_currency');
     }
 

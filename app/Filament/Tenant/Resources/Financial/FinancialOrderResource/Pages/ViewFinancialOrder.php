@@ -23,7 +23,7 @@ class ViewFinancialOrder extends ViewRecord
                 Section::make('Order')
                     ->schema([
                         TextEntry::make('order_number')->label('Order number'),
-                        TextEntry::make('status')->badge()->color(fn (string $s) => match ($s) {
+                        TextEntry::make('status')->badge()->color(fn (string $state) => match ($state) {
                             'paid' => 'success',
                             'pending' => 'warning',
                             'draft' => 'gray',

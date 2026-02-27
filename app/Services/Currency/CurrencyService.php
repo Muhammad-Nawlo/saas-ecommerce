@@ -14,9 +14,12 @@ use InvalidArgumentException;
 
 final class CurrencyService
 {
-    public function getTenantBaseCurrency(?string $tenantId = null): Currency
+    public function getTenantBaseCurrency(?string $tenantId = null): ?Currency
     {
         $tenantId = $tenantId ?? (string) tenant('id');
+        if ($tenantId === '') {
+            return null;
+        }
         $setting = TenantCurrencySetting::where('tenant_id', $tenantId)->first();
         if ($setting === null) {
             $base = Currency::where('code', 'USD')->first();
@@ -34,7 +37,15 @@ final class CurrencyService
             ]);
             return $base;
         }
-        return $setting->baseCurrency;
+        $baseCurrency = $setting->baseCurrency;
+        if ($baseCurrency === null) {
+            $base = Currency::where('code', 'USD')->first() ?? Currency::first();
+            if ($base !== null) {
+                $setting->update(['base_currency_id' => $base->id]);
+                return $base;
+            }
+        }
+        return $baseCurrency;
     }
 
     /**
@@ -45,12 +56,14 @@ final class CurrencyService
         $tenantId = $tenantId ?? (string) tenant('id');
         $setting = TenantCurrencySetting::where('tenant_id', $tenantId)->first();
         if ($setting === null || !$setting->allow_multi_currency) {
-            return collect([$this->getTenantBaseCurrency($tenantId)]);
+            $base = $this->getTenantBaseCurrency($tenantId);
+            return $base !== null ? collect([$base]) : collect();
         }
         $ids = TenantEnabledCurrency::where('tenant_id', $tenantId)->pluck('currency_id');
         $currencies = Currency::whereIn('id', $ids)->where('is_active', true)->orderBy('code')->get();
         if ($currencies->isEmpty()) {
-            return collect([$this->getTenantBaseCurrency($tenantId)]);
+            $base = $this->getTenantBaseCurrency($tenantId);
+            return $base !== null ? collect([$base]) : collect();
         }
         return $currencies;
     }

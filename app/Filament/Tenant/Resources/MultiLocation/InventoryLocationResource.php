@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -34,7 +35,7 @@ class InventoryLocationResource extends Resource
     {
         return $schema
             ->schema([
-                Forms\Components\Section::make('Location')
+                Section::make('Location')
                     ->schema([
                         Forms\Components\TextInput::make('name')->required()->maxLength(255),
                         Forms\Components\TextInput::make('code')->required()->maxLength(64)->disabled(fn (?InventoryLocation $r) => $r !== null),

@@ -35,7 +35,7 @@ final class RecordPromotionUsageService
             }
             PromotionUsage::create([
                 'promotion_id' => $promotionId,
-                'customer_id' => $customerId,
+                'user_id' => $customerId,
                 'customer_email' => strtolower($customerEmail),
                 'order_id' => $orderId,
                 'used_at' => now(),

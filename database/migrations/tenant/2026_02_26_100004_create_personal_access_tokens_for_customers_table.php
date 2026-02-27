@@ -7,8 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Sanctum personal_access_tokens in tenant DB for customer API tokens.
- * tokenable_type = App\Models\Customer\Customer, tokenable_id = customer uuid.
+ * Sanctum personal_access_tokens in tenant DB for user API tokens.
+ * tokenable_type = App\Models\Customer\Customer, tokenable_id = user uuid (Customer model uses users table).
  */
 return new class extends Migration
 {

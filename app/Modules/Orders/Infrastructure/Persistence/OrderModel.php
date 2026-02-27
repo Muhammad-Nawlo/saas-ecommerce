@@ -22,7 +22,7 @@ final class OrderModel extends Model
     protected $fillable = [
         'id',
         'tenant_id',
-        'customer_id',
+        'user_id',
         'customer_email',
         'status',
         'total_amount',
@@ -50,6 +50,6 @@ final class OrderModel extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\Customer\Customer::class, 'customer_id', 'id');
+        return $this->belongsTo(\App\Models\Customer\Customer::class, 'user_id', 'id');
     }
 }

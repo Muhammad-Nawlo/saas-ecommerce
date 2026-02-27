@@ -59,7 +59,6 @@ class InvoiceResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with(['customer', 'order']))
             ->columns([
                 Tables\Columns\TextColumn::make('invoice_number')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('customer.email')->placeholder('—')->label('Customer'),
@@ -67,7 +66,7 @@ class InvoiceResource extends Resource
                     ->label('Total')
                     ->formatStateUsing(fn (int $s, Invoice $r) => number_format($s / 100, 2) . ' ' . $r->currency)
                     ->sortable(),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'paid' => 'success',
                     'issued', 'partially_paid' => 'info',
                     'draft' => 'gray',
@@ -119,7 +118,7 @@ class InvoiceResource extends Resource
         if ($tenantId === null) {
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
-        return parent::getEloquentQuery()->forTenant((string) $tenantId);
+        return parent::getEloquentQuery()->forTenant((string) $tenantId)->with(['customer', 'order']);
     }
 
     public static function canCreate(): bool

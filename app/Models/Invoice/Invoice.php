@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $id
  * @property string $tenant_id
  * @property string|null $order_id
- * @property string|null $customer_id
+ * @property string|null $user_id
  * @property string $invoice_number
  * @property string $status
  * @property string $currency
@@ -53,7 +53,7 @@ class Invoice extends Model
     protected $fillable = [
         'tenant_id',
         'order_id',
-        'customer_id',
+        'user_id',
         'invoice_number',
         'status',
         'currency',
@@ -111,7 +111,7 @@ class Invoice extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'user_id');
     }
 
     public function isLocked(): bool
@@ -210,7 +210,7 @@ class Invoice extends Model
             'id' => $this->id,
             'tenant_id' => $this->tenant_id,
             'order_id' => $this->order_id,
-            'customer_id' => $this->customer_id,
+            'user_id' => $this->user_id,
             'invoice_number' => $this->invoice_number,
             'status' => $this->status,
             'currency' => $this->currency,

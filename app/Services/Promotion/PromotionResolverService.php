@@ -72,7 +72,7 @@ final readonly class PromotionResolverService
     {
         $q = PromotionUsage::where('promotion_id', $promotionId);
         if ($customerId !== null) {
-            $q->where('customer_id', $customerId);
+            $q->where('user_id', $customerId);
         } else {
             $q->where('customer_email', '=', strtolower($email));
         }

@@ -55,7 +55,6 @@ class OrderResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->with('items'))
             ->columns([
                 Tables\Columns\TextColumn::make('id')->label('Order #')->limit(8)->copyable()->sortable(),
                 Tables\Columns\TextColumn::make('customer_email')->searchable()->sortable()->label('Customer'),
@@ -63,7 +62,7 @@ class OrderResource extends Resource
                     ->label('Total')
                     ->getStateUsing(fn (OrderModel $r) => '$' . number_format($r->total_amount / 100, 2))
                     ->sortable(query: fn (Builder $q, string $dir) => $q->orderBy('total_amount', $dir)),
-                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $s) => match ($s) {
+                Tables\Columns\TextColumn::make('status')->badge()->color(fn (string $state) => match ($state) {
                     'paid', 'shipped' => 'success',
                     'confirmed' => 'info',
                     'pending' => 'warning',
@@ -123,7 +122,7 @@ class OrderResource extends Resource
         if ($tenantId === null) {
             return parent::getEloquentQuery()->whereRaw('1 = 0');
         }
-        return parent::getEloquentQuery()->forTenant((string) $tenantId);
+        return parent::getEloquentQuery()->forTenant((string) $tenantId)->with('items');
     }
 
     public static function canCreate(): bool

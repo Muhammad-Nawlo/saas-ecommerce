@@ -87,8 +87,12 @@ class RoleResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ])
-            ->defaultSort('name')
-            ->modifyQueryUsing(fn (Builder $q) => $q->where('guard_name', 'web'));
+            ->defaultSort('name');
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('guard_name', 'web')->orderBy('name');
     }
 
     public static function getPages(): array

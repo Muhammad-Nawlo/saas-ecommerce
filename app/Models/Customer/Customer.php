@@ -38,7 +38,7 @@ class Customer extends Authenticatable implements MustVerifyEmail, \Illuminate\C
     use HasUuids;
     use SoftDeletes;
 
-    protected $table = 'customers';
+    protected $table = 'users';
 
     protected $fillable = [
         'tenant_id',
@@ -70,17 +70,23 @@ class Customer extends Authenticatable implements MustVerifyEmail, \Illuminate\C
 
     public function addresses(): HasMany
     {
-        return $this->hasMany(CustomerAddress::class, 'customer_id');
+        return $this->hasMany(CustomerAddress::class, 'user_id');
     }
 
     public function sessions(): HasMany
     {
-        return $this->hasMany(CustomerSession::class, 'customer_id');
+        return $this->hasMany(CustomerSession::class, 'user_id');
     }
 
     public function orders(): HasMany
     {
-        return $this->hasMany(OrderModel::class, 'customer_id', 'id');
+        return $this->hasMany(OrderModel::class, 'user_id', 'id');
+    }
+
+    /** Filament and auth expect a name attribute. */
+    public function getNameAttribute(): string
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
     }
 
     public function getAuthIdentifierName(): string
